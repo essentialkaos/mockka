@@ -4,28 +4,10 @@ Mockka is a simple utility for mocking HTTP API's.
 
 ### Installation
 ````
-yum install -y http://release.yum.kaos.io/i386/kaos-repo-6.8-0.el6.noarch.rpm
-yum install mockka
-````
-
-### Manual build
-
-Mockka written on golang and requires go >= 1.3 for build.
-
-````
-wget https://source.kaos.io/mockka/mockka-current.tar.gz
-tar xzf mockka-current.gz -C $GOPATH/src/
-cd $GOPATH/src/mockka/
-go build mck.go
+go get github.com/essentialkaos/mockka
 ````
 
 ### Usage
-````
-service mockka start
-````
-
-OR
-
 ````
 mck -c /path/to/mockka.conf run
 ````
