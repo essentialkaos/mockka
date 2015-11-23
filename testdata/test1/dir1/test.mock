@@ -1,0 +1,25 @@
+# Comment
+
+@DESCRIPTION
+Test mock file
+
+@HOST
+test.domain
+
+@AUTH
+user1:password1
+
+@REQUEST
+GET /test?rnd=123
+
+@RESPONSE
+{"test":123}
+
+@CODE
+200
+
+@HEADERS
+Content-Type:application/json
+
+@DELAY
+12.3

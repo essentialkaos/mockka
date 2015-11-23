@@ -1,0 +1,11 @@
+@DESCRIPTION
+Test mock file
+
+@REQUEST
+GET /test
+
+@RESPONSE:1 < json/resp1.json
+@RESPONSE:2 < json/resp2.json
+
+@CODE
+200

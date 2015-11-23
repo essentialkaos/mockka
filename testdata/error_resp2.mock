@@ -1,0 +1,5 @@
+@DESCRIPTION
+Test mock file
+
+@REQUEST
+GET test

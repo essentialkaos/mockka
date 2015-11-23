@@ -1,0 +1,88 @@
+#!/bin/bash
+
+###############################################################################
+
+# mockka         Startup script for mockka daemon
+
+# chkconfig: - 85 15
+# processname: mockka
+# config: /etc/mockka.conf
+# pidfile: /var/run/mockka/mockka.pid
+# description: Mockka Daemon
+
+###############################################################################
+
+source /etc/init.d/kaosv
+
+###############################################################################
+
+kv[prog_name]="mockka"
+kv[search_pattern]="mck"
+
+binary="/usr/bin/mck"
+conf_file="/etc/mockka.conf"
+
+kv[user]="mockka"
+kv[pid_dir]="/var/run/mockka"
+kv[log]="/var/log/mockka/mockka.log"
+
+###############################################################################
+
+kv.addCommand "start"        "Start Mockka Daemon"
+kv.addCommand "stop"         "Stop Mockka Daemon"
+kv.addCommand "restart"      "Restart (stop+start) Mockka"
+kv.addCommand "status"       "Show current status of Mockka"
+
+kv.addHandler "start" "startServiceHandler"
+kv.addHandler "stop"  "stopServiceHandler"
+
+###############################################################################
+
+prepare() {
+  local has_errors=""
+
+  [[ ! -x $binary ]] && has_errors=true && kv.error "<BINARY> must be executable file."
+  [[ ! -r $conf_file ]] && has_errors=true && kv.error "<CONF_FILE> must be readable file."
+  [[ ! -s $conf_file ]] && has_errors=true && kv.error "<CONF_FILE> can't be empty."
+
+  [[ $has_errors ]] && kv.exit $ACTION_ERROR
+}
+
+###############################################################################
+
+startServiceHandler() {
+  touch ${kv[log]}
+  chown ${kv[user]}: ${kv[log]}
+
+  kv.daemonize $binary -d -c $conf_file run
+
+  [[ $? -ne $ACTION_OK ]] && return $ACTION_ERROR
+
+  sleep 1
+
+  kv.getStartStatus
+
+  return $?
+}
+
+stopServiceHandler() {
+  local pid=`kv.getPid`
+
+  kv.sendSignal "$SIGNAL_TERM"
+
+  if kv.getStopStatus ; then
+    return $ACTION_OK
+  else
+    if [[ -n "$1" ]] ; then
+      kv.killProcess $pid 
+    fi
+
+    return $ACTION_ERROR
+  fi
+}
+
+###############################################################################
+
+prepare
+
+kv.go $@

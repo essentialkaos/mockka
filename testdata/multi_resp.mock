@@ -1,0 +1,26 @@
+@DESCRIPTION
+Test mock file
+
+@REQUEST
+GET /test
+
+@RESPONSE:1
+{"test":1}
+
+@RESPONSE:2
+{"test":2}
+
+@CODE:1
+200
+
+@CODE:2
+404
+
+@HEADERS:1
+X-Header:1
+
+@HEADERS:2
+X-Header:2
+
+@DELAY:2
+5.5

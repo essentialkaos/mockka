@@ -1,0 +1,8 @@
+@DESCRIPTION
+Test mock file
+
+@REQUEST
+GET /test
+
+@HEADERS
+test 123
