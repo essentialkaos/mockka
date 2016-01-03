@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/essentialkaos/ek/fsutil"
-	"github.com/essentialkaos/ek/httputil"
+	"pkg.re/essentialkaos/ek.v1/fsutil"
+	"pkg.re/essentialkaos/ek.v1/httputil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //

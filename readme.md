@@ -1,18 +1,18 @@
-# Mockka
+### Mockka
 
-Mockka is a simple utility for mocking HTTP API's.
+`Mockka` is a simple utility for mocking HTTP API's.
 
-### Installation
+#### Installation
 ````
 go get github.com/essentialkaos/mockka
 ````
 
-### Usage
+#### Usage
 ````
-mck -c /path/to/mockka.conf run
+mockka -c /path/to/mockka.conf run
 ````
 
-### Example rules
+#### Rule examples
 
 ##### Example 1
 ````
@@ -166,6 +166,6 @@ Content-Type:application/json
 
 ````
 
-### License
+#### License
 
 [EKOL](https://essentialkaos.com/ekol)

@@ -15,10 +15,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/essentialkaos/ek/fsutil"
-	"github.com/essentialkaos/ek/system"
-
-	"github.com/essentialkaos/mockka/core"
+	"pkg.re/essentialkaos/ek.v1/fsutil"
+	"pkg.re/essentialkaos/ek.v1/knf"
+	"pkg.re/essentialkaos/ek.v1/system"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -41,9 +40,20 @@ Content-Type:application/json
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
+const (
+	MAIN_RULE_DIR     = "main:rule-dir"
+	ACCESS_USER       = "access:user"
+	ACCESS_GROUP      = "access:group"
+	ACCESS_MOCK_PERMS = "access:mock-perms"
+	ACCESS_DIR_PERMS  = "access:dir-perms"
+	TEMPLATE_PATH     = "template:path"
+)
+
+// ////////////////////////////////////////////////////////////////////////////////// //
+
 func Make(name string) error {
-	if !fsutil.IsWritable(core.Config.GetS(core.ConfMainRuleDir)) {
-		return fmt.Errorf("Directory %s must be writable.", core.Config.GetS(core.ConfMainRuleDir))
+	if !fsutil.IsWritable(knf.GetS(MAIN_RULE_DIR)) {
+		return fmt.Errorf("Directory %s must be writable.", knf.GetS(MAIN_RULE_DIR))
 	}
 
 	if name == "" {
@@ -54,8 +64,8 @@ func Make(name string) error {
 		return errors.New("You must difine mock file name as <service-id>/<mock-name>.")
 	}
 
-	template := core.Config.GetS(core.ConfTemplatePath)
-	ruleDir := core.Config.GetS(core.ConfMainRuleDir)
+	template := knf.GetS(TEMPLATE_PATH)
+	ruleDir := knf.GetS(MAIN_RULE_DIR)
 	dirName := path.Dir(name)
 	fullPath := ruleDir + "/" + name
 
@@ -81,7 +91,7 @@ func Make(name string) error {
 }
 
 func createMock(content, dirName, fullPath string) error {
-	serviceDir := core.Config.GetS(core.ConfMainRuleDir) + "/" + dirName
+	serviceDir := knf.GetS(MAIN_RULE_DIR) + "/" + dirName
 
 	err := os.MkdirAll(serviceDir, 0755)
 
@@ -105,12 +115,12 @@ func createMock(content, dirName, fullPath string) error {
 }
 
 func updatePerms(dirPath, mockPath string) {
-	if core.Config.GetS(core.ConfAccessUser) != "" || core.Config.GetS(core.ConfAccessGroup) != "" {
+	if knf.GetS(ACCESS_USER) != "" || knf.GetS(ACCESS_GROUP) != "" {
 		dirOwnerUID, dirOwnerGID, _ := fsutil.GetOwner(dirPath)
 		mockOwnerUID, mockOwnerGID, _ := fsutil.GetOwner(mockPath)
 
-		if core.Config.GetS(core.ConfAccessUser) != "" {
-			userInfo, err := system.LookupUser(core.Config.GetS(core.ConfAccessUser))
+		if knf.GetS(ACCESS_USER) != "" {
+			userInfo, err := system.LookupUser(knf.GetS(ACCESS_USER))
 
 			if err == nil {
 				dirOwnerUID = userInfo.UID
@@ -118,8 +128,8 @@ func updatePerms(dirPath, mockPath string) {
 			}
 		}
 
-		if core.Config.GetS(core.ConfAccessGroup) != "" {
-			groupInfo, err := system.LookupGroup(core.Config.GetS(core.ConfAccessGroup))
+		if knf.GetS(ACCESS_GROUP) != "" {
+			groupInfo, err := system.LookupGroup(knf.GetS(ACCESS_GROUP))
 
 			if err == nil {
 				dirOwnerGID = groupInfo.GID
@@ -131,6 +141,6 @@ func updatePerms(dirPath, mockPath string) {
 		os.Chown(mockPath, mockOwnerUID, mockOwnerGID)
 	}
 
-	os.Chmod(dirPath, core.Config.GetM(core.ConfAccessDirPerms))
-	os.Chmod(mockPath, core.Config.GetM(core.ConfAccessMockPerms))
+	os.Chmod(dirPath, knf.GetM(ACCESS_DIR_PERMS))
+	os.Chmod(mockPath, knf.GetM(ACCESS_MOCK_PERMS))
 }

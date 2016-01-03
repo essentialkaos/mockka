@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,26 +22,41 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/essentialkaos/ek/fsutil"
-	"github.com/essentialkaos/ek/httputil"
-	"github.com/essentialkaos/ek/rand"
-	"github.com/essentialkaos/ek/system"
-	"github.com/essentialkaos/ek/timeutil"
+	"pkg.re/essentialkaos/ek.v1/fsutil"
+	"pkg.re/essentialkaos/ek.v1/httputil"
+	"pkg.re/essentialkaos/ek.v1/knf"
+	"pkg.re/essentialkaos/ek.v1/log"
+	"pkg.re/essentialkaos/ek.v1/rand"
+	"pkg.re/essentialkaos/ek.v1/system"
+	"pkg.re/essentialkaos/ek.v1/timeutil"
 
-	"github.com/essentialkaos/mockka/core"
 	"github.com/essentialkaos/mockka/rules"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 const (
-	XMockkaCodeOk     = 0
-	XMockkaNoRule     = 1
-	XMockkaNoResponse = 2
-	XMockkaCantRender = 3
+	X_MOCKKA_CODE_OK     = 0
+	X_MOCKKA_NO_RULE     = 1
+	X_MOCKKA_NO_RESPONSE = 2
+	X_MOCKKA_CANT_RENDER = 3
 )
 
-const ErrorHTTPCode = 599
+const ERROR_HTTP_CODE = 599
+
+const (
+	MAIN_LOG_DIR         = "main:log-dir"
+	HTTP_IP              = "http:ip"
+	HTTP_PORT            = "http:port"
+	HTTP_READ_TIMEOUT    = "http:read-timeout"
+	HTTP_WRITE_TIMEOUT   = "http:write-timeout"
+	HTTP_MAX_HEADER_SIZE = "http:max-header-size"
+	ACCESS_USER          = "access:user"
+	ACCESS_GROUP         = "access:group"
+	ACCESS_MOCK_PERMS    = "access:mock-perms"
+	ACCESS_LOG_PERMS     = "access:log-perms"
+	ACCESS_DIR_PERMS     = "access:dir-perms"
+)
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
@@ -110,23 +124,23 @@ func Start(obs *rules.Observer, serverName, customPort string) error {
 	stab = &stabber{}
 	serverToken = serverName
 
-	port := core.Config.GetS(core.ConfHTTPPort)
+	port := knf.GetS(HTTP_PORT)
 
 	if customPort != "" {
 		port = customPort
 	}
 
 	server := &http.Server{
-		Addr:           core.Config.GetS(core.ConfHTTPIp) + ":" + port,
+		Addr:           knf.GetS(HTTP_IP) + ":" + port,
 		Handler:        http.NewServeMux(),
-		ReadTimeout:    time.Duration(core.Config.GetI(core.ConfHTTPReadTimeout)) * time.Second,
-		WriteTimeout:   time.Duration(core.Config.GetI(core.ConfHTTPWriteTimeout)) * time.Second,
-		MaxHeaderBytes: core.Config.GetI(core.ConfHTTPMaxHeaderSize),
+		ReadTimeout:    time.Duration(knf.GetI(HTTP_READ_TIMEOUT)) * time.Second,
+		WriteTimeout:   time.Duration(knf.GetI(HTTP_WRITE_TIMEOUT)) * time.Second,
+		MaxHeaderBytes: knf.GetI(HTTP_MAX_HEADER_SIZE),
 	}
 
 	server.Handler.(*http.ServeMux).HandleFunc("/", basicHandler)
 
-	log.Printf("Mockka HTTP server started on %s:%s\n", core.Config.GetS(core.ConfHTTPIp), port)
+	log.Aux("Mockka HTTP server started on %s:%s\n", knf.GetS(HTTP_IP), port)
 
 	return server.ListenAndServe()
 }
@@ -140,17 +154,17 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 	rule = observer.GetRule(r)
 
 	if rule == nil {
-		log.Printf("[ERROR] Can't find rule for request %s (%s)\n", r.URL.String(), r.Method)
-		addInfoHeader(w, r, XMockkaNoRule)
-		w.WriteHeader(ErrorHTTPCode)
+		log.Error("Can't find rule for request %s (%s)", r.URL.String(), r.Method)
+		addInfoHeader(w, r, X_MOCKKA_NO_RULE)
+		w.WriteHeader(ERROR_HTTP_CODE)
 		return
 	}
 
 	switch len(rule.Responses) {
 	case 0:
-		log.Printf("[ERROR] Can't find response for request %s (%s)\n", r.URL.String(), r.Method)
-		addInfoHeader(w, r, XMockkaNoResponse)
-		w.WriteHeader(ErrorHTTPCode)
+		log.Error("Can't find response for request %s (%s)", r.URL.String(), r.Method)
+		addInfoHeader(w, r, X_MOCKKA_NO_RESPONSE)
+		w.WriteHeader(ERROR_HTTP_CODE)
 		return
 	case 1:
 		resp = rule.Responses[rules.DefaultID]
@@ -161,9 +175,9 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 	content, err := renderTemplate(r, resp.Body())
 
 	if err != nil {
-		log.Printf("[ERROR] Can't render response body - %s\n", err.Error())
-		addInfoHeader(w, r, XMockkaCantRender)
-		w.WriteHeader(ErrorHTTPCode)
+		log.Error("Can't render response body: %v", err.Error())
+		addInfoHeader(w, r, X_MOCKKA_CANT_RENDER)
+		w.WriteHeader(ERROR_HTTP_CODE)
 		return
 	}
 
@@ -217,20 +231,20 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 		w.Header().Set(k, v)
 	}
 
-	addInfoHeader(w, r, XMockkaCodeOk)
+	addInfoHeader(w, r, X_MOCKKA_CODE_OK)
 
 	w.WriteHeader(code)
 	w.Write([]byte(content))
 }
 
 func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, content string) {
-	filePath := core.Config.GetS(core.ConfMainLogDir) + "/" + rule.Service + ".log"
+	filePath := knf.GetS(MAIN_LOG_DIR) + "/" + rule.Service + ".log"
 	requredPermChange := !fsutil.IsExist(filePath)
 
 	fd, err := os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 
 	if err != nil {
-		log.Printf("[ERROR] %s\n", err.Error())
+		log.Error(err.Error())
 		return
 	}
 
@@ -366,19 +380,19 @@ func makeLogRecord(fd *os.File, service string, req *http.Request, rule *rules.R
 }
 
 func updatePerms(logPath string) {
-	if core.Config.HasProp(core.ConfAccessUser) || core.Config.HasProp(core.ConfAccessGroup) {
+	if knf.HasProp(ACCESS_USER) || knf.HasProp(ACCESS_GROUP) {
 		logOwnerUID, logOwnerGID, _ := fsutil.GetOwner(logPath)
 
-		if core.Config.HasProp(core.ConfAccessUser) {
-			userInfo, err := system.LookupUser(core.Config.GetS(core.ConfAccessUser))
+		if knf.HasProp(ACCESS_USER) {
+			userInfo, err := system.LookupUser(knf.GetS(ACCESS_USER))
 
 			if err != nil {
 				logOwnerUID = userInfo.UID
 			}
 		}
 
-		if core.Config.HasProp(core.ConfAccessGroup) {
-			groupInfo, err := system.LookupGroup(core.Config.GetS(core.ConfAccessGroup))
+		if knf.HasProp(ACCESS_GROUP) {
+			groupInfo, err := system.LookupGroup(knf.GetS(ACCESS_GROUP))
 
 			if err != nil {
 				logOwnerGID = groupInfo.GID
@@ -388,7 +402,7 @@ func updatePerms(logPath string) {
 		os.Chown(logPath, logOwnerUID, logOwnerGID)
 	}
 
-	os.Chmod(logPath, core.Config.GetM(core.ConfAccessLogPerms))
+	os.Chmod(logPath, knf.GetM(ACCESS_LOG_PERMS))
 }
 
 func parseBasicAuth(auth string) (string, string, bool) {

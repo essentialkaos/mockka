@@ -11,11 +11,19 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/essentialkaos/ek/fmtc"
-	"github.com/essentialkaos/ek/netutil"
+	"pkg.re/essentialkaos/ek.v1/fmtc"
+	"pkg.re/essentialkaos/ek.v1/knf"
+	"pkg.re/essentialkaos/ek.v1/netutil"
 
-	"github.com/essentialkaos/mockka/core"
 	"github.com/essentialkaos/mockka/rules"
+)
+
+// ////////////////////////////////////////////////////////////////////////////////// //
+
+const (
+	LISTING_SCHEME = "listing:scheme"
+	LISTING_HOST   = "listing:host"
+	LISTING_PORT   = "listing:port"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -93,19 +101,19 @@ func showRuleInfo(rule *rules.Rule) {
 	host := rule.Host
 
 	if host == "" {
-		if core.Config.GetS(core.ConfListingHost) != "" {
-			host = core.Config.GetS(core.ConfListingHost)
+		if knf.GetS(LISTING_HOST) != "" {
+			host = knf.GetS(LISTING_HOST)
 		} else {
 			host = ip
 		}
 	}
 
-	if core.Config.GetS(core.ConfListingScheme) != "" {
-		host = core.Config.GetS(core.ConfListingScheme) + "://" + host
+	if knf.GetS(LISTING_SCHEME) != "" {
+		host = knf.GetS(LISTING_SCHEME) + "://" + host
 	}
 
-	if core.Config.GetS(core.ConfListingPort) != "" {
-		host = host + ":" + core.Config.GetS(core.ConfListingPort)
+	if knf.GetS(LISTING_PORT) != "" {
+		host = host + ":" + knf.GetS(LISTING_PORT)
 	}
 
 	fmtc.Printf("  {s}%s %s%s{!}\n", rule.Request.Method, host, rule.Request.URL)
