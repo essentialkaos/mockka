@@ -171,7 +171,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 
 	// If all sections in rule file is empty we create default response
 	if len(rule.Responses) == 0 {
-		rule.Responses[DefaultID] = &Response{Headers: make(map[string]string)}
+		rule.Responses[DEFAULT] = &Response{Headers: make(map[string]string)}
 	}
 
 	mtime, _ := fsutil.GetMTime(rule.Path)
@@ -182,7 +182,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 
 func parseSectionHeader(header string) (string, string, string) {
 	var s []string
-	var section, id, file string = "", DefaultID, ""
+	var section, id, file string = "", DEFAULT, ""
 
 	section = strings.Replace(header[1:], " ", "", -1)
 
