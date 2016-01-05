@@ -26,6 +26,7 @@ import (
 	"pkg.re/essentialkaos/ek.v1/kv"
 	"pkg.re/essentialkaos/ek.v1/log"
 	"pkg.re/essentialkaos/ek.v1/rand"
+	"pkg.re/essentialkaos/ek.v1/req"
 	"pkg.re/essentialkaos/ek.v1/system"
 
 	"github.com/essentialkaos/mockka/rules"
@@ -38,6 +39,7 @@ const (
 	X_MOCKKA_NO_RULE     = 1
 	X_MOCKKA_NO_RESPONSE = 2
 	X_MOCKKA_CANT_RENDER = 3
+	X_MOCKKA_CANT_PROXY  = 4
 )
 
 const ERROR_HTTP_CODE = 599
@@ -99,8 +101,11 @@ func Start(obs *rules.Observer, serverName, customPort string) error {
 
 // basicHandler is handler for all requests
 func basicHandler(w http.ResponseWriter, r *http.Request) {
-	var rule *rules.Rule
-	var resp *rules.Response
+	var (
+		err  error
+		rule *rules.Rule
+		resp *rules.Response
+	)
 
 	w.Header().Set("Server", serverToken)
 
@@ -125,13 +130,26 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 		resp = getRandomResponse(rule)
 	}
 
-	content, err := renderTemplate(r, resp.Body())
+	var content string
 
-	if err != nil {
-		log.Error("Can't render response body: %v", err.Error())
-		addInfoHeader(w, r, X_MOCKKA_CANT_RENDER)
-		w.WriteHeader(ERROR_HTTP_CODE)
-		return
+	if resp.URL == "" {
+		content, err = renderTemplate(r, resp.Body())
+
+		if err != nil {
+			log.Error("Can't render response body: %v", err)
+			addInfoHeader(w, r, X_MOCKKA_CANT_RENDER)
+			w.WriteHeader(ERROR_HTTP_CODE)
+			return
+		}
+	} else {
+		content, err = proxyRequest(r, rule, resp)
+
+		if err != nil {
+			log.Error("Can't proxy request: %v", err)
+			addInfoHeader(w, r, X_MOCKKA_CANT_PROXY)
+			w.WriteHeader(ERROR_HTTP_CODE)
+			return
+		}
 	}
 
 	logRequestInfo(r, rule, resp, content)
@@ -272,6 +290,8 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, co
 		record.RequestHost = rule.Host
 	}
 
+	record.ResponseURL = resp.URL
+
 	record.Method = req.Method
 	record.Request = req.RequestURI
 	record.StatusCode = resp.Code
@@ -402,4 +422,34 @@ func addInfoHeader(w http.ResponseWriter, r *http.Request, code int) {
 	if r.Header.Get("Mockka") != "" {
 		w.Header().Add("X-Mockka-Code", strconv.Itoa(code))
 	}
+}
+
+// proxyRequest used for proxying request
+func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (string, error) {
+	request := req.Request{
+		Method: rule.Request.Method,
+		URL:    resp.URL,
+	}
+
+	if len(r.Header) != 0 {
+		headers := make(map[string]string)
+
+		for n, v := range r.Header {
+			headers[n] = strings.Join(v, " ")
+		}
+
+		request.Headers = headers
+	}
+
+	if r.Body != nil {
+		request.Body = r.Body
+	}
+
+	prResp, err := request.Do()
+
+	if err != nil {
+		return "", err
+	}
+
+	return prResp.String(), nil
 }

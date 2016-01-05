@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"pkg.re/essentialkaos/ek.v1/fsutil"
+	"pkg.re/essentialkaos/ek.v1/httputil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -81,20 +82,25 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 	rule.Service = service
 	rule.Path = path.Join(ruleDir, service, dir, mock+".mock")
 
-	var section, id, file string
+	var section, id, source string
 
 	if len(data) == 0 {
-		return rule, fmt.Errorf("Can't parse file %s - file is empty", rule.Path)
+		return nil, fmt.Errorf("Can't parse file %s - file is empty", rule.Path)
 	}
 
 	for _, line := range data {
 		if line[0:1] == "@" {
-			section, id, file = parseSectionHeader(line)
+			section, id, source = parseSectionHeader(line)
 
-			if section == "RESPONSE" && file != "" {
+			if section == "RESPONSE" && source != "" {
 				resp := getResponse(rule, id)
-				resp.Headers["Content-Type"] = guessContentType(file)
-				resp.File = ruleDir + "/" + service + "/" + file
+
+				if httputil.IsURL(source) {
+					resp.URL = source
+				} else {
+					resp.Headers["Content-Type"] = guessContentType(source)
+					resp.File = ruleDir + "/" + service + "/" + source
+				}
 			}
 
 			continue
@@ -111,11 +117,11 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			reqMethod, reqURL := parseRequestInfo(line)
 
 			if reqMethod == "" || reqURL == "" {
-				return NewRule(), fmt.Errorf("Can't parse file %s - section REQUEST is malformed", rule.Path)
+				return nil, fmt.Errorf("Can't parse file %s - section REQUEST is malformed", rule.Path)
 			}
 
 			if reqURL[0:1] != "/" {
-				return NewRule(), fmt.Errorf("Can't parse file %s - request url must start from /", rule.Path)
+				return nil, fmt.Errorf("Can't parse file %s - request url must start from /", rule.Path)
 			}
 
 			if strings.Contains(reqURL, "*") {
@@ -135,7 +141,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			code, err := strconv.Atoi(strings.TrimRight(line, " "))
 
 			if err != nil {
-				return NewRule(), fmt.Errorf("Can't parse file %s - section CODE is malformed", rule.Path)
+				return nil, fmt.Errorf("Can't parse file %s - section CODE is malformed", rule.Path)
 			}
 
 			getResponse(rule, id).Code = code
@@ -144,7 +150,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			headerName, headerValue := parseHTTPHeader(line)
 
 			if headerName == "" || headerValue == "" {
-				return NewRule(), fmt.Errorf("Can't parse file %s - section HEADERS is malformed", rule.Path)
+				return nil, fmt.Errorf("Can't parse file %s - section HEADERS is malformed", rule.Path)
 			}
 
 			getResponse(rule, id).Headers[headerName] = headerValue
@@ -153,7 +159,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			delay, err := strconv.ParseFloat(strings.TrimRight(line, " "), 64)
 
 			if err != nil {
-				return NewRule(), fmt.Errorf("Can't parse file %s - section DELAY is malformed", rule.Path)
+				return nil, fmt.Errorf("Can't parse file %s - section DELAY is malformed", rule.Path)
 			}
 
 			getResponse(rule, id).Delay = delay
@@ -162,7 +168,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			lpa := strings.Split(strings.TrimRight(line, " "), ":")
 
 			if len(lpa) != 2 {
-				return NewRule(), fmt.Errorf("Can't parse file %s - section AUTH is malformed", rule.Path)
+				return nil, fmt.Errorf("Can't parse file %s - section AUTH is malformed", rule.Path)
 			}
 
 			rule.Auth.User, rule.Auth.Password = lpa[0], lpa[1]
@@ -181,22 +187,26 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 }
 
 func parseSectionHeader(header string) (string, string, string) {
-	var s []string
-	var section, id, file string = "", DEFAULT, ""
+	var slice []string
 
+	var (
+		section = ""
+		id      = DEFAULT
+		source  = ""
+	)
 	section = strings.Replace(header[1:], " ", "", -1)
 
 	if strings.Contains(section, "<") {
-		s = strings.Split(section, "<")
-		file, section = s[1], s[0]
+		slice = strings.Split(section, "<")
+		source, section = slice[1], slice[0]
 	}
 
 	if strings.Contains(section, ":") {
-		s = strings.Split(section, ":")
-		id, section = s[1], s[0]
+		slice = strings.Split(section, ":")
+		id, section = slice[1], slice[0]
 	}
 
-	return strings.ToUpper(section), id, file
+	return strings.ToUpper(section), id, source
 }
 
 func parseRequestInfo(request string) (string, string) {

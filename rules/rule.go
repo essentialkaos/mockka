@@ -49,6 +49,7 @@ type Request struct {
 type Response struct {
 	Content string
 	File    string
+	URL     string
 	Code    int
 	Headers map[string]string
 	Delay   float64
@@ -69,7 +70,7 @@ func NewRule() *Rule {
 
 // Get reponse body
 func (r *Response) Body() string {
-	if r.Content == "" {
+	if r.File != "" {
 		body, err := ioutil.ReadFile(r.File)
 
 		if err != nil {

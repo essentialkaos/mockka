@@ -30,7 +30,7 @@ user:password
 GET /test/login?action=login&type=1
 
 @RESPONSE
-{{ if .IsHeader "X-Suppa-Header" "Magic" }}
+{{ if .HeaderIs "X-Suppa-Header" "Magic" }}
 {
   "status": "ok",
   "result": {

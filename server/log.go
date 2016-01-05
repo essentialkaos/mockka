@@ -32,6 +32,7 @@ type LogRecord struct {
 	ResponseHeaders []*kv.KV  `json:"response_headers"`
 	RequestBody     string    `json:"request_body"`
 	ResponseBody    string    `json:"response_body"`
+	ResponseURL     string    `json:"response_url"`
 	Cookies         []string  `json:"cookies"`
 	StatusCode      int       `json:"status_code"`
 	StatusDesc      string    `json:"status_desc"`
@@ -59,6 +60,11 @@ func (lr *LogRecord) Write(fd *os.File) error {
 	}
 
 	fmt.Fprintf(fd, "  %-24s %s %s\n", "Request:", lr.Method, lr.Request)
+
+	if lr.ResponseURL != "" {
+		fmt.Fprintf(fd, "  %-24s %s\n", "Response URL:", lr.ResponseURL)
+	}
+
 	fmt.Fprintf(fd, "  %-24s %d %s\n", "Status Code:", lr.StatusCode, lr.StatusDesc)
 
 	if len(lr.RequestHeaders) != 0 {
