@@ -9,9 +9,7 @@ package server
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -25,10 +23,10 @@ import (
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/httputil"
 	"pkg.re/essentialkaos/ek.v1/knf"
+	"pkg.re/essentialkaos/ek.v1/kv"
 	"pkg.re/essentialkaos/ek.v1/log"
 	"pkg.re/essentialkaos/ek.v1/rand"
 	"pkg.re/essentialkaos/ek.v1/system"
-	"pkg.re/essentialkaos/ek.v1/timeutil"
 
 	"github.com/essentialkaos/mockka/rules"
 )
@@ -60,69 +58,23 @@ const (
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-type stabber struct {
-	request *http.Request
-}
-
-func (s *stabber) RandomNum(start, end int) int {
-	if start >= end {
-		return start
-	}
-
-	d := end - start
-	r := rand.Int(d)
-
-	return start + r
-}
-
-func (s *stabber) RandomString(length int) string {
-	return rand.String(length)
-}
-
-func (s *stabber) Query(name string) string {
-	if s.request == nil {
-		return ""
-	}
-
-	query := s.request.URL.Query()
-
-	return strings.Join(query[name], " ")
-}
-
-func (s *stabber) IsQuery(name, value string) bool {
-	return s.Query(name) == value
-}
-
-func (s *stabber) Header(name string) string {
-	if s.request == nil {
-		return ""
-	}
-
-	headers := s.request.Header
-
-	return strings.Join(headers[name], " ")
-}
-
-func (s *stabber) IsHeader(name, value string) bool {
-	return s.Header(name) == value
-}
+var (
+	serverToken string
+	observer    *rules.Observer
+	stabber     *Stabber
+)
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-var stab *stabber
-var serverToken string
-var observer *rules.Observer
-
-// ////////////////////////////////////////////////////////////////////////////////// //
-
+// Start starts mockka HTTP server
 func Start(obs *rules.Observer, serverName, customPort string) error {
 	if obs == nil {
 		return errors.New("Observer is not created")
 	}
 
 	observer = obs
-	stab = &stabber{}
 	serverToken = serverName
+	stabber = &Stabber{}
 
 	port := knf.GetS(HTTP_PORT)
 
@@ -145,6 +97,7 @@ func Start(obs *rules.Observer, serverName, customPort string) error {
 	return server.ListenAndServe()
 }
 
+// basicHandler is handler for all requests
 func basicHandler(w http.ResponseWriter, r *http.Request) {
 	var rule *rules.Rule
 	var resp *rules.Response
@@ -167,7 +120,7 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(ERROR_HTTP_CODE)
 		return
 	case 1:
-		resp = rule.Responses[rules.DefaultID]
+		resp = rule.Responses[rules.DEFAULT]
 	default:
 		resp = getRandomResponse(rule)
 	}
@@ -185,6 +138,7 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 	processRequest(w, r, rule, resp, content)
 }
 
+// processRequest process http request and use found rule for formating output data
 func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, resp *rules.Response, content string) {
 	var defResp *rules.Response
 	var headers map[string]string
@@ -193,8 +147,7 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	var code = 200
 
 	if rule.Auth.User != "" && rule.Auth.Password != "" {
-		auth := r.Header.Get("Authorization")
-		login, password, ok := parseBasicAuth(auth)
+		login, password, ok := r.BasicAuth()
 
 		if !ok || login != rule.Auth.User || password != rule.Auth.Password {
 			w.WriteHeader(401)
@@ -203,7 +156,7 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	}
 
 	if resp.Code == 0 {
-		defResp, ok = rule.Responses[rules.DefaultID]
+		defResp, ok = rule.Responses[rules.DEFAULT]
 
 		if ok && defResp.Code != 0 {
 			code = defResp.Code
@@ -213,7 +166,7 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	}
 
 	if len(resp.Headers) == 0 {
-		defResp, ok = rule.Responses[rules.DefaultID]
+		defResp, ok = rule.Responses[rules.DEFAULT]
 
 		if ok && len(defResp.Headers) != 0 {
 			headers = defResp.Headers
@@ -237,6 +190,8 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	w.Write([]byte(content))
 }
 
+// logRequestInfo create log file and write record with info about request and reponse
+// into this file
 func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, content string) {
 	filePath := knf.GetS(MAIN_LOG_DIR) + "/" + rule.Service + ".log"
 	requredPermChange := !fsutil.IsExist(filePath)
@@ -250,15 +205,21 @@ func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, c
 
 	defer fd.Close()
 
-	makeLogRecord(fd, rule.Service, req, rule, resp, content)
+	err = makeLogRecord(req, rule, resp, content).Write(fd)
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
 
 	if requredPermChange {
 		updatePerms(filePath)
 	}
 }
 
+// renderTemplate render output body template
 func renderTemplate(req *http.Request, content string) (string, error) {
-	templ, err := template.New("body").Parse(content)
+	templ, err := template.New("").Parse(content)
 
 	if err != nil {
 		return "", err
@@ -266,19 +227,21 @@ func renderTemplate(req *http.Request, content string) (string, error) {
 
 	var bf bytes.Buffer
 
-	stab.request = req
+	stabber.request = req
 	ct := template.Must(templ, nil)
-	ct.Execute(&bf, stab)
-	stab.request = nil
+	ct.Execute(&bf, stabber)
+	stabber.request = nil
 
 	return string(bf.Bytes()), nil
 }
 
+// getRandomResponse return random response from list of possible response bodies or default
+// if response only one
 func getRandomResponse(rule *rules.Rule) *rules.Response {
 	var ids []string
 
 	for id := range rule.Responses {
-		if id == rules.DefaultID {
+		if id == rules.DEFAULT {
 			continue
 		}
 
@@ -288,47 +251,40 @@ func getRandomResponse(rule *rules.Rule) *rules.Response {
 	return rule.Responses[ids[rand.Int(len(ids)-1)]]
 }
 
-func makeLogRecord(fd *os.File, service string, req *http.Request, rule *rules.Rule, resp *rules.Response, content string) {
-	date := timeutil.Format(time.Now(), "%Y/%m/%d %T")
+func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, content string) *LogRecord {
+	record := &LogRecord{Date: time.Now()}
 
-	fd.WriteString(fmt.Sprintf("-- %s -----------------------------------------------------------------\n\n", date))
-	fd.WriteString(fmt.Sprintf("  %-24s %s\n", "Mock:", rule.Path))
+	record.Mock = rule.Path
 
 	xForwardedFor := req.Header.Get("X-Forwarded-For")
 	xRealIP := req.Header.Get("X-Real-Ip")
 
 	switch {
 	case xRealIP != "":
-		fd.WriteString(fmt.Sprintf("  %-24s %s\n", "Remote Adress:", xRealIP))
+		record.RemoteAdress = xRealIP
 	case xForwardedFor != "":
-		fd.WriteString(fmt.Sprintf("  %-24s %s\n", "Remote Adress:", strings.Split(xForwardedFor, ",")[0]))
+		record.RemoteAdress = strings.Split(xForwardedFor, ",")[0]
 	default:
-		fd.WriteString(fmt.Sprintf("  %-24s %s\n", "Remote Adress:", req.RemoteAddr))
+		record.RemoteAdress = req.RemoteAddr
 	}
 
 	if rule.Host != "" {
-		fd.WriteString(fmt.Sprintf("  %-24s %s\n", "Request Host:", rule.Host))
+		record.RequestHost = rule.Host
 	}
 
-	fd.WriteString(fmt.Sprintf("  %-24s %s %s\n", "Request:", req.Method, req.RequestURI))
-	fd.WriteString(fmt.Sprintf("  %-24s %d %s\n", "Status Code:", resp.Code, httputil.GetDescByCode(resp.Code)))
+	record.Method = req.Method
+	record.Request = req.RequestURI
+	record.StatusCode = resp.Code
+	record.StatusDesc = httputil.GetDescByCode(resp.Code)
 
-	fd.WriteString("\n+ HEADERS\n\n")
-
-	reqHeaders := getSortedReqHeaders(req.Header)
-
-	for _, k := range reqHeaders {
-		fd.WriteString(fmt.Sprintf("  %-24s %s\n", k+":", strings.Join(req.Header[k], " ")))
+	if len(req.Header) != 0 {
+		record.RequestHeaders = getSortedReqHeaders(req.Header)
 	}
 
 	cookies := req.Cookies()
 
 	if len(cookies) != 0 {
-		fd.WriteString("\n+ COOKIES\n\n")
-
-		for _, c := range cookies {
-			fd.WriteString(fmt.Sprintf("  %s\n", "Request:", c.String()))
-		}
+		record.Cookies = getSortedCookies(cookies)
 	}
 
 	req.ParseForm()
@@ -337,48 +293,32 @@ func makeLogRecord(fd *os.File, service string, req *http.Request, rule *rules.R
 		query := req.URL.Query()
 
 		if len(query) != 0 {
-			fd.WriteString("\n+ QUERY\n\n")
-
-			sortedQuery := getSortedQuery(query)
-
-			for _, k := range sortedQuery {
-				fd.WriteString(fmt.Sprintf("  %-24s %s\n", k+":", strings.Join(query[k], " ")))
-			}
+			record.Query = getSortedURLValues(query)
 		}
 	} else {
 		if len(req.Form) != 0 {
-			fd.WriteString("\n+ FORM DATA\n\n")
-
-			for k, v := range req.Form {
-				fd.WriteString(fmt.Sprintf("  %-24s %s\n", k+":", strings.Join(v, " ")))
-			}
+			record.FormData = getSortedURLValues(req.Form)
 		}
 	}
 
 	body, err := ioutil.ReadAll(req.Body)
 
 	if err == nil && len(body) != 0 {
-		fd.WriteString("\n+ REQUEST BODY\n\n")
-		fd.Write(body)
-		fd.WriteString("\n")
+		record.RequestBody = string(body[:])
 	}
 
 	if content != "" {
-		fd.WriteString("\n+ RESPONSE BODY\n\n")
-		fd.WriteString(content)
+		record.ResponseBody = content
 	}
 
-	fd.WriteString("\n+ RESPONSE HEADERS\n\n")
-
-	respHeaders := getSortedRespHeaders(resp.Headers)
-
-	for _, k := range respHeaders {
-		fd.WriteString(fmt.Sprintf("  %-24s %s\n", k+":", resp.Headers[k]))
+	if len(resp.Headers) != 0 {
+		record.ResponseHeaders = getSortedRespHeaders(resp.Headers)
 	}
 
-	fd.WriteString("\n\n")
+	return record
 }
 
+// updatePerms change permissions for log file/dir
 func updatePerms(logPath string) {
 	if knf.HasProp(ACCESS_USER) || knf.HasProp(ACCESS_GROUP) {
 		logOwnerUID, logOwnerGID, _ := fsutil.GetOwner(logPath)
@@ -405,32 +345,51 @@ func updatePerms(logPath string) {
 	os.Chmod(logPath, knf.GetM(ACCESS_LOG_PERMS))
 }
 
-func parseBasicAuth(auth string) (string, string, bool) {
-	if !strings.HasPrefix(auth, "Basic ") {
-		return "", "", false
+// getSortedReqHeaders return sorted request headers
+func getSortedReqHeaders(headers http.Header) []*kv.KV {
+	var result []*kv.KV
+
+	for n, v := range headers {
+		result = append(result, &kv.KV{n, strings.Join(v, " ")})
 	}
 
-	c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(auth, "Basic "))
+	kv.Sort(result)
 
-	if err != nil {
-		return "", "", false
-	}
-
-	cs := string(c)
-	s := strings.IndexByte(cs, ':')
-
-	if s < 0 {
-		return "", "", false
-	}
-
-	return cs[:s], cs[s+1:], true
+	return result
 }
 
-func getSortedReqHeaders(headers http.Header) []string {
+// getSortedRespHeaders return sorted response headers
+func getSortedRespHeaders(headers map[string]string) []*kv.KV {
+	var result []*kv.KV
+
+	for n, v := range headers {
+		result = append(result, &kv.KV{n, v})
+	}
+
+	kv.Sort(result)
+
+	return result
+}
+
+// getSortedURLValues return sorted request data
+func getSortedURLValues(query url.Values) []*kv.KV {
+	var result []*kv.KV
+
+	for n, v := range query {
+		result = append(result, &kv.KV{n, strings.Join(v, " ")})
+	}
+
+	kv.Sort(result)
+
+	return result
+}
+
+// getSortedCookies return sorted cookies slice
+func getSortedCookies(cookies []*http.Cookie) []string {
 	var result []string
 
-	for n := range headers {
-		result = append(result, n)
+	for _, v := range cookies {
+		result = append(result, v.String())
 	}
 
 	sort.Strings(result)
@@ -438,30 +397,7 @@ func getSortedReqHeaders(headers http.Header) []string {
 	return result
 }
 
-func getSortedRespHeaders(headers map[string]string) []string {
-	var result []string
-
-	for n := range headers {
-		result = append(result, n)
-	}
-
-	sort.Strings(result)
-
-	return result
-}
-
-func getSortedQuery(query url.Values) []string {
-	var result []string
-
-	for n := range query {
-		result = append(result, n)
-	}
-
-	sort.Strings(result)
-
-	return result
-}
-
+// addInfoHeader adds special header with error code
 func addInfoHeader(w http.ResponseWriter, r *http.Request, code int) {
 	if r.Header.Get("Mockka") != "" {
 		w.Header().Add("X-Mockka-Code", strconv.Itoa(code))
