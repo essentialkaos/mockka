@@ -2,7 +2,7 @@ package rules
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 //                                                                                    //
-//                     Copyright (c) 2009-2015 Essential Kaos                         //
+//                     Copyright (c) 2009-2016 Essential Kaos                         //
 //      Essential Kaos Open Source License <http://essentialkaos.com/ekol?en>         //
 //                                                                                    //
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -10,7 +10,6 @@ package rules
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path"
 	"sort"
@@ -19,6 +18,7 @@ import (
 
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/httputil"
+	"pkg.re/essentialkaos/ek.v1/log"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -297,7 +297,7 @@ func (obs *Observer) watch(checkDelay int) {
 
 		if len(messages) != 0 {
 			for _, message := range messages {
-				log.Println(message)
+				log.Info(message)
 			}
 		}
 
