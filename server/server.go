@@ -51,7 +51,6 @@ const (
 	HTTP_READ_TIMEOUT         = "http:read-timeout"
 	HTTP_WRITE_TIMEOUT        = "http:write-timeout"
 	HTTP_MAX_HEADER_SIZE      = "http:max-header-size"
-	PROCESSING_AUTO_HEAD      = "processing:auto-head"
 	PROCESSING_ALLOW_PROXYING = "processing:allow-proxying"
 	ACCESS_USER               = "access:user"
 	ACCESS_GROUP              = "access:group"
@@ -132,32 +131,34 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 		resp = getRandomResponse(rule)
 	}
 
-	var content string
+	var content = ""
 
-	if resp.URL == "" {
-		content, err = renderTemplate(r, resp.Body())
+	if r.Method != "HEAD" {
+		if resp.URL == "" {
+			content, err = renderTemplate(r, resp.Body())
 
-		if err != nil {
-			log.Error("Can't render response body: %v", err)
-			addInfoHeader(w, r, X_MOCKKA_CANT_RENDER)
-			w.WriteHeader(ERROR_HTTP_CODE)
-			return
-		}
-	} else {
-		if !knf.GetB(PROCESSING_ALLOW_PROXYING) {
-			log.Error("Can't proxy request: proxying disabled in configuration file")
-			addInfoHeader(w, r, X_MOCKKA_FORBIDDEN)
-			w.WriteHeader(ERROR_HTTP_CODE)
-			return
-		}
+			if err != nil {
+				log.Error("Can't render response body: %v", err)
+				addInfoHeader(w, r, X_MOCKKA_CANT_RENDER)
+				w.WriteHeader(ERROR_HTTP_CODE)
+				return
+			}
+		} else {
+			if !knf.GetB(PROCESSING_ALLOW_PROXYING) {
+				log.Error("Can't proxy request: proxying disabled in configuration file")
+				addInfoHeader(w, r, X_MOCKKA_FORBIDDEN)
+				w.WriteHeader(ERROR_HTTP_CODE)
+				return
+			}
 
-		content, err = proxyRequest(r, rule, resp)
+			content, err = proxyRequest(r, rule, resp)
 
-		if err != nil {
-			log.Error("Can't proxy request: %v", err)
-			addInfoHeader(w, r, X_MOCKKA_CANT_PROXY)
-			w.WriteHeader(ERROR_HTTP_CODE)
-			return
+			if err != nil {
+				log.Error("Can't proxy request: %v", err)
+				addInfoHeader(w, r, X_MOCKKA_CANT_PROXY)
+				w.WriteHeader(ERROR_HTTP_CODE)
+				return
+			}
 		}
 	}
 

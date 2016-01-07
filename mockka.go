@@ -60,28 +60,30 @@ const (
 )
 
 const (
-	MAIN_DIR             = "main:dir"
-	MAIN_RULE_DIR        = "main:rule-dir"
-	MAIN_LOG_DIR         = "main:log-dir"
-	MAIN_CHECK_DELAY     = "main:check-delay"
-	HTTP_IP              = "http:ip"
-	HTTP_PORT            = "http:port"
-	HTTP_READ_TIMEOUT    = "http:read-timeout"
-	HTTP_WRITE_TIMEOUT   = "http:write-timeout"
-	HTTP_MAX_HEADER_SIZE = "http:max-header-size"
-	LOG_DIR              = "log:dir"
-	LOG_FILE             = "log:file"
-	LOG_PERMS            = "log:perms"
-	LOG_LEVEL            = "log:level"
-	ACCESS_USER          = "access:user"
-	ACCESS_GROUP         = "access:group"
-	ACCESS_MOCK_PERMS    = "access:mock-perms"
-	ACCESS_LOG_PERMS     = "access:log-perms"
-	ACCESS_DIR_PERMS     = "access:dir-perms"
-	LISTING_SCHEME       = "listing:scheme"
-	LISTING_HOST         = "listing:host"
-	LISTING_PORT         = "listing:port"
-	TEMPLATE_PATH        = "template:path"
+	MAIN_DIR                  = "main:dir"
+	MAIN_RULE_DIR             = "main:rule-dir"
+	MAIN_LOG_DIR              = "main:log-dir"
+	MAIN_CHECK_DELAY          = "main:check-delay"
+	HTTP_IP                   = "http:ip"
+	HTTP_PORT                 = "http:port"
+	HTTP_READ_TIMEOUT         = "http:read-timeout"
+	HTTP_WRITE_TIMEOUT        = "http:write-timeout"
+	HTTP_MAX_HEADER_SIZE      = "http:max-header-size"
+	PROCESSING_AUTO_HEAD      = "processing:auto-head"
+	PROCESSING_ALLOW_PROXYING = "processing:allow-proxying"
+	LOG_DIR                   = "log:dir"
+	LOG_FILE                  = "log:file"
+	LOG_PERMS                 = "log:perms"
+	LOG_LEVEL                 = "log:level"
+	ACCESS_USER               = "access:user"
+	ACCESS_GROUP              = "access:group"
+	ACCESS_MOCK_PERMS         = "access:mock-perms"
+	ACCESS_LOG_PERMS          = "access:log-perms"
+	ACCESS_DIR_PERMS          = "access:dir-perms"
+	LISTING_SCHEME            = "listing:scheme"
+	LISTING_HOST              = "listing:host"
+	LISTING_PORT              = "listing:port"
+	TEMPLATE_PATH             = "template:path"
 )
 
 const (
@@ -293,6 +295,7 @@ func registerSignalHandlers() {
 
 func runServer() {
 	observer := rules.NewObserver(knf.GetS(MAIN_RULE_DIR))
+	observer.AutoHead = knf.GetB(PROCESSING_AUTO_HEAD)
 	observer.Start(knf.GetI(MAIN_CHECK_DELAY))
 
 	err := server.Start(observer, APP+"/"+VER, arg.GetS(ARG_PORT))

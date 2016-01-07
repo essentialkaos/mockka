@@ -24,6 +24,8 @@ import (
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 type Observer struct {
+	AutoHead bool
+
 	uriMap  map[string]*Rule            // method+url -> rule
 	pathMap map[string]*Rule            // full path -> rule
 	wcMap   map[string]*Rule            // Wilcard string -> rule
@@ -139,42 +141,27 @@ func (obs *Observer) Load() []string {
 // Get rule struct by request struct
 func (obs *Observer) GetRule(r *http.Request) *Rule {
 	var rule *Rule
-	var ok bool
 
-	host := httputil.GetRequestHost(r)
+	autoHead := obs.AutoHead && r.Method == "HEAD"
 
-	rule, ok = obs.uriMap[host+":"+r.Method+":"+getSortedRequestURI(r)]
+	rule = findRule(obs.uriMap, r, false, autoHead)
 
-	if ok {
-		return rule
-	}
-
-	rule, ok = obs.uriMap[":"+r.Method+":"+getSortedRequestURI(r)]
-
-	if ok {
+	if rule != nil {
 		return rule
 	}
 
 	if len(obs.wcMap) != 0 {
-		wc := getQueryWildcard(r.URL.Query())
+		rule = findRule(obs.wcMap, r, true, autoHead)
 
-		rule, ok = obs.wcMap[host+":"+r.Method+":"+wc]
-
-		if ok {
-			return rule
-		}
-
-		rule, ok = obs.wcMap[":"+r.Method+":"+wc]
-
-		if ok {
+		if rule != nil {
 			return rule
 		}
 	}
 
-	return rule
+	return nil
 }
 
-// Get rule by full name (i.e. service/<dir/dir/mock>)
+// Get rule by full name (i.e. service/dir/mock>)
 func (obs *Observer) GetRuleByName(service, name string) *Rule {
 	if !obs.srvMap[service] {
 		return nil
@@ -306,6 +293,53 @@ func (obs *Observer) watch(checkDelay int) {
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
+
+func findRule(data map[string]*Rule, r *http.Request, wildcard, autoHead bool) *Rule {
+	var result *Rule
+	var uri string
+
+	host := httputil.GetRequestHost(r)
+
+	if !wildcard {
+		uri = getSortedRequestURI(r)
+	} else {
+		uri = getQueryWildcard(r.URL.Query())
+	}
+
+	result = getRule(data, host, r.Method, uri)
+
+	if result != nil {
+		return result
+	}
+
+	if !autoHead {
+		return nil
+	}
+
+	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
+		result = getRule(data, host, method, uri)
+
+		if result != nil {
+			return result
+		}
+	}
+
+	return nil
+}
+
+func getRule(data map[string]*Rule, host, method, uri string) *Rule {
+	var result *Rule
+
+	result = data[host+":"+method+":"+uri]
+
+	if result != nil {
+		return result
+	}
+
+	result = data[":"+method+":"+uri]
+
+	return result
+}
 
 func getSortedRequestURI(r *http.Request) string {
 	if !strings.Contains(r.RequestURI, "?") {
