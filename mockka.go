@@ -101,8 +101,6 @@ var argList = arg.Map{
 	ARG_VER:      &arg.V{Type: arg.BOOL, Alias: "ver"},
 }
 
-var logFd *os.File
-
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func main() {

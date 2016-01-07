@@ -23,6 +23,7 @@ import (
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
+// contentTypes contains map file ext -> content type
 var contentTypes = map[string]string{
 	".json": "text/javascript",
 	".txt":  "text/plain",
@@ -37,15 +38,14 @@ var contentTypes = map[string]string{
 func Parse(ruleDir, service, dir, mock string) (*Rule, error) {
 	mockFile := path.Join(ruleDir, service, dir, mock+".mock")
 
-	if !fsutil.CheckPerms("FR", mockFile) {
-		return NewRule(), fmt.Errorf("File %s is not readable or not exist", mockFile)
-	}
-
-	fd, err := os.Open(mockFile)
+	err := checkMockFile(mockFile)
 
 	if err != nil {
 		return nil, err
 	}
+
+	// We don't check errors, because file was checked before
+	fd, _ := os.Open(mockFile)
 
 	defer fd.Close()
 
@@ -84,10 +84,6 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 
 	var section, id, source string
 
-	if len(data) == 0 {
-		return nil, fmt.Errorf("Can't parse file %s - file is empty", rule.Path)
-	}
-
 	for _, line := range data {
 		if line[0:1] == "@" {
 			section, id, source = parseSectionHeader(line)
@@ -99,7 +95,12 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 					resp.URL = source
 				} else {
 					resp.Headers["Content-Type"] = guessContentType(source)
-					resp.File = ruleDir + "/" + service + "/" + source
+
+					if service != "" {
+						resp.File = ruleDir + "/" + service + "/" + source
+					} else {
+						resp.File = ruleDir + "/" + source
+					}
 				}
 			}
 
@@ -186,6 +187,19 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 	return rule, nil
 }
 
+func checkMockFile(file string) error {
+	switch {
+	case fsutil.IsExist(file) == false:
+		return fmt.Errorf("File %s is not exist", file)
+	case fsutil.IsReadable(file) == false:
+		return fmt.Errorf("File %s is not readable", file)
+	case fsutil.IsNonEmpty(file) == false:
+		return fmt.Errorf("File %s is empty", file)
+	}
+
+	return nil
+}
+
 func parseSectionHeader(header string) (string, string, string) {
 	var slice []string
 
@@ -210,23 +224,23 @@ func parseSectionHeader(header string) (string, string, string) {
 }
 
 func parseRequestInfo(request string) (string, string) {
-	s := strings.Split(request, " ")
+	requestSlice := strings.Split(request, " ")
 
-	if len(s) < 2 {
+	if len(requestSlice) < 2 {
 		return "", ""
 	}
 
-	return strings.ToUpper(s[0]), s[1]
+	return strings.ToUpper(requestSlice[0]), requestSlice[1]
 }
 
 func parseHTTPHeader(header string) (string, string) {
-	s := strings.Split(header, ":")
+	headerSlice := strings.Split(header, ":")
 
-	if len(s) < 2 {
+	if len(headerSlice) < 2 {
 		return "", ""
 	}
 
-	return strings.TrimRight(s[0], " "), strings.TrimLeft(s[1], " ")
+	return strings.TrimRight(headerSlice[0], " "), strings.TrimLeft(headerSlice[1], " ")
 }
 
 func getResponse(rule *Rule, id string) *Response {
@@ -243,11 +257,11 @@ func getResponse(rule *Rule, id string) *Response {
 }
 
 func guessContentType(file string) string {
-	ext := path.Ext(file)
-	ct, ok := contentTypes[ext]
+	fileExt := path.Ext(file)
+	contentType, ok := contentTypes[fileExt]
 
 	if ok {
-		return ct
+		return contentType
 	}
 
 	return "text/plain"

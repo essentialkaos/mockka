@@ -17,28 +17,28 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type ParserTest struct {
+type ParseSuite struct {
 	TempDir string
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-var _ = Suite(&ParserTest{})
+var _ = Suite(&ParseSuite{})
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-func (s *ParserTest) TestParsingError(c *C) {
+func (s *ParseSuite) TestParsingError(c *C) {
 	var err error
 
 	_, err = Parse("../testdata", "", "", "test0")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "File ../testdata/test0.mock is not readable or not exist")
+	c.Assert(err.Error(), Equals, "File ../testdata/test0.mock is not exist")
 
 	_, err = Parse("../testdata", "", "", "error_empty")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_empty.mock - file is empty")
+	c.Assert(err.Error(), Equals, "File ../testdata/error_empty.mock is empty")
 
 	_, err = Parse("../testdata", "", "", "error_resp1")
 
@@ -71,7 +71,7 @@ func (s *ParserTest) TestParsingError(c *C) {
 	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_auth.mock - section AUTH is malformed")
 }
 
-func (s *ParserTest) TestParsing(c *C) {
+func (s *ParseSuite) TestParsing(c *C) {
 	var (
 		rule *Rule
 		err  error
@@ -100,7 +100,7 @@ func (s *ParserTest) TestParsing(c *C) {
 	c.Assert(rule.Responses[DEFAULT].Delay, Equals, 12.3)
 }
 
-func (s *ParserTest) TestMultiresponseParsing(c *C) {
+func (s *ParseSuite) TestMultiresponseParsing(c *C) {
 	var (
 		rule *Rule
 		err  error
@@ -110,6 +110,8 @@ func (s *ParserTest) TestMultiresponseParsing(c *C) {
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
+
+	c.Assert(rule.URI(), Equals, ":GET:/test?id=314&simple=&user=bob")
 
 	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":1}\n")
 	c.Assert(rule.Responses["1"].Code, Equals, 200)
@@ -122,7 +124,7 @@ func (s *ParserTest) TestMultiresponseParsing(c *C) {
 	c.Assert(rule.Responses["2"].Delay, Equals, 5.5)
 }
 
-func (s *ParserTest) TestFileResponseParsing(c *C) {
+func (s *ParseSuite) TestFileResponseParsing(c *C) {
 	var (
 		rule *Rule
 		err  error
@@ -133,6 +135,40 @@ func (s *ParserTest) TestFileResponseParsing(c *C) {
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
 
+	c.Assert(rule.Responses["1"].File, Equals, "../testdata/json/resp1.json")
 	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":1}\n")
+	c.Assert(rule.Responses["2"].File, Equals, "../testdata/json/resp2.json")
 	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":2}\n")
+	c.Assert(rule.Responses["3"].File, Equals, "../testdata/json/resp3.json")
+	c.Assert(rule.Responses["3"].Body(), Equals, "")
+}
+
+func (s *ParseSuite) TestURLResponseParsing(c *C) {
+	var (
+		rule *Rule
+		err  error
+	)
+
+	rule, err = Parse("../testdata", "", "", "url_resp")
+
+	c.Assert(rule, Not(IsNil))
+	c.Assert(err, IsNil)
+
+	c.Assert(rule.Responses["1"].URL, Equals, "http://www.domain.com/api/users")
+	c.Assert(rule.Responses["2"].URL, Equals, "https://www.domain.com/api/users?limit=20")
+}
+
+func (s *ParseSuite) TestWildcardRuleParsing(c *C) {
+	var (
+		rule *Rule
+		err  error
+	)
+
+	rule, err = Parse("../testdata", "", "", "wildcard")
+
+	c.Assert(rule, Not(IsNil))
+	c.Assert(err, IsNil)
+
+	c.Assert(rule.Wildcard, Equals, "type=1:~username")
+	c.Assert(rule.WilcardURI(), Equals, ":GET:type=1:~username")
 }

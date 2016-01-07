@@ -12,7 +12,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -40,22 +39,25 @@ const (
 	X_MOCKKA_NO_RESPONSE = 2
 	X_MOCKKA_CANT_RENDER = 3
 	X_MOCKKA_CANT_PROXY  = 4
+	X_MOCKKA_FORBIDDEN   = 5
 )
 
 const ERROR_HTTP_CODE = 599
 
 const (
-	MAIN_LOG_DIR         = "main:log-dir"
-	HTTP_IP              = "http:ip"
-	HTTP_PORT            = "http:port"
-	HTTP_READ_TIMEOUT    = "http:read-timeout"
-	HTTP_WRITE_TIMEOUT   = "http:write-timeout"
-	HTTP_MAX_HEADER_SIZE = "http:max-header-size"
-	ACCESS_USER          = "access:user"
-	ACCESS_GROUP         = "access:group"
-	ACCESS_MOCK_PERMS    = "access:mock-perms"
-	ACCESS_LOG_PERMS     = "access:log-perms"
-	ACCESS_DIR_PERMS     = "access:dir-perms"
+	MAIN_LOG_DIR              = "main:log-dir"
+	HTTP_IP                   = "http:ip"
+	HTTP_PORT                 = "http:port"
+	HTTP_READ_TIMEOUT         = "http:read-timeout"
+	HTTP_WRITE_TIMEOUT        = "http:write-timeout"
+	HTTP_MAX_HEADER_SIZE      = "http:max-header-size"
+	PROCESSING_AUTO_HEAD      = "processing:auto-head"
+	PROCESSING_ALLOW_PROXYING = "processing:allow-proxying"
+	ACCESS_USER               = "access:user"
+	ACCESS_GROUP              = "access:group"
+	ACCESS_MOCK_PERMS         = "access:mock-perms"
+	ACCESS_LOG_PERMS          = "access:log-perms"
+	ACCESS_DIR_PERMS          = "access:dir-perms"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -142,6 +144,13 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		if !knf.GetB(PROCESSING_ALLOW_PROXYING) {
+			log.Error("Can't proxy request: proxying disabled in configuration file")
+			addInfoHeader(w, r, X_MOCKKA_FORBIDDEN)
+			w.WriteHeader(ERROR_HTTP_CODE)
+			return
+		}
+
 		content, err = proxyRequest(r, rule, resp)
 
 		if err != nil {
@@ -165,9 +174,9 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	var code = 200
 
 	if rule.Auth.User != "" && rule.Auth.Password != "" {
-		login, password, ok := r.BasicAuth()
+		login, password, hasAuth := r.BasicAuth()
 
-		if !ok || login != rule.Auth.User || password != rule.Auth.Password {
+		if !hasAuth || login != rule.Auth.User || password != rule.Auth.Password {
 			w.WriteHeader(401)
 			return
 		}
@@ -298,7 +307,7 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, co
 	record.StatusDesc = httputil.GetDescByCode(resp.Code)
 
 	if len(req.Header) != 0 {
-		record.RequestHeaders = getSortedReqHeaders(req.Header)
+		record.RequestHeaders = getSortedValues(req.Header)
 	}
 
 	cookies := req.Cookies()
@@ -313,11 +322,11 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, co
 		query := req.URL.Query()
 
 		if len(query) != 0 {
-			record.Query = getSortedURLValues(query)
+			record.Query = getSortedValues(query)
 		}
 	} else {
 		if len(req.Form) != 0 {
-			record.FormData = getSortedURLValues(req.Form)
+			record.FormData = getSortedValues(req.Form)
 		}
 	}
 
@@ -365,19 +374,6 @@ func updatePerms(logPath string) {
 	os.Chmod(logPath, knf.GetM(ACCESS_LOG_PERMS))
 }
 
-// getSortedReqHeaders return sorted request headers
-func getSortedReqHeaders(headers http.Header) []*kv.KV {
-	var result []*kv.KV
-
-	for n, v := range headers {
-		result = append(result, &kv.KV{n, strings.Join(v, " ")})
-	}
-
-	kv.Sort(result)
-
-	return result
-}
-
 // getSortedRespHeaders return sorted response headers
 func getSortedRespHeaders(headers map[string]string) []*kv.KV {
 	var result []*kv.KV
@@ -391,11 +387,11 @@ func getSortedRespHeaders(headers map[string]string) []*kv.KV {
 	return result
 }
 
-// getSortedURLValues return sorted request data
-func getSortedURLValues(query url.Values) []*kv.KV {
+// getSortedValues return sorted request data
+func getSortedValues(data map[string][]string) []*kv.KV {
 	var result []*kv.KV
 
-	for n, v := range query {
+	for n, v := range data {
 		result = append(result, &kv.KV{n, strings.Join(v, " ")})
 	}
 

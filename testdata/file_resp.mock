@@ -6,6 +6,7 @@ GET /test
 
 @RESPONSE:1 < json/resp1.json
 @RESPONSE:2 < json/resp2.json
+@RESPONSE:3 < json/resp3.json
 
 @CODE
 200

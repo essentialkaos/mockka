@@ -2,7 +2,7 @@
 Test mock file
 
 @REQUEST
-GET /test
+GET /test?user=bob&id=314&simple
 
 @RESPONSE:1
 {"test":1}

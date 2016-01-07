@@ -79,7 +79,7 @@ func (lr *LogRecord) Write(fd *os.File) error {
 		fmt.Fprintf(fd, "\n+ COOKIES\n\n")
 
 		for _, c := range lr.Cookies {
-			fmt.Fprintf(fd, "  %s\n", "Request:", c)
+			fmt.Fprintf(fd, "  %s\n", c)
 		}
 	}
 
