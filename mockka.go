@@ -10,16 +10,15 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"pkg.re/essentialkaos/ek.v1/arg"
 	"pkg.re/essentialkaos/ek.v1/fmtc"
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/knf"
 	"pkg.re/essentialkaos/ek.v1/log"
+	"pkg.re/essentialkaos/ek.v1/signal"
 	"pkg.re/essentialkaos/ek.v1/system"
 	"pkg.re/essentialkaos/ek.v1/usage"
 
@@ -271,26 +270,11 @@ func execCommand(args []string) {
 }
 
 func registerSignalHandlers() {
-	c := make(chan os.Signal)
-
-	signal.Notify(c, syscall.SIGINT)
-	signal.Notify(c, syscall.SIGTERM)
-	signal.Notify(c, syscall.SIGHUP)
-
-	go func() {
-		for {
-			sig := <-c
-
-			switch sig {
-			case syscall.SIGINT, syscall.SIGTERM:
-				log.Info("Received TERM or INT signal, shutdown...")
-				os.Exit(0)
-			case syscall.SIGHUP:
-				log.Info("Received HUP signal, log reopened")
-				setupLog()
-			}
-		}
-	}()
+	signal.Handlers{
+		signal.INT:  intSignalHandler,
+		signal.TERM: termSignalHandler,
+		signal.HUP:  hupSignalHandler,
+	}.TrackAsync()
 }
 
 func runServer() {
@@ -339,6 +323,23 @@ func listMocks(args []string) {
 
 func printError(message string) {
 	fmt.Printf("\n%s\n\n", message)
+}
+
+// ////////////////////////////////////////////////////////////////////////////////// //
+
+func intSignalHandler() {
+	log.Info("Received INT signal, shutdown...")
+	os.Exit(0)
+}
+
+func termSignalHandler() {
+	log.Info("Received TERM signal, shutdown...")
+	os.Exit(0)
+}
+
+func hupSignalHandler() {
+	log.Info("Received HUP signal, log reopened")
+	log.Reopen()
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
