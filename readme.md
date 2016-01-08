@@ -29,25 +29,26 @@ user:password
 @REQUEST
 GET /test/login?action=login&type=1
 
+# You can use go template language for response body
 @RESPONSE
 {{ if .HeaderIs "X-Suppa-Header" "Magic" }}
 {
   "status": "ok",
   "result": {
-    "username": "user1",
-    "session_id": "{{ .RandomString 64 }}",
-    "user_id": {{ .RandomNum 0 1000 }},
+    "username":"{{ .UserName "en" }}",
+    "ip": "{{ .IPv4 }}",
+    "first_name": "{{ .MaleFirstName "ru" }}",
+    "last_name": "{{ .MaleLastName "ru" }}",
+    "city": "{{ .City "ru" }}",
+    "password": "{{ .SimplePassword }}",
     "action": "{{ .Query "action" }}"
-    "header": "{{ .Header "My-Custom-Header" }}"
   }
 }
 {{ else }}
 {
   "status": "error",
   "result": {
-    "username": "user2",
-    "session_id": "{{ .RandomString 64 }}",
-    "user_id": {{ .RandomNum 0 1000 }},
+    "username":"{{ .UserName "en" }}",
     "action": "{{ .Query "action" }}"
   }
 }
@@ -82,9 +83,7 @@ GET /test/login?action=login&type=1
 {
   "status": "ok",
   "result": {
-    "username": "user1",
-    "session_id": "{{ .RandomString 64 }}",
-    "user_id": {{ .RandomNum 0 1000 }}
+    "username":"{{ .UserName "en" }}"
   }
 }
 
@@ -94,7 +93,7 @@ GET /test/login?action=login&type=1
   "result": {}
 }
 
-# You can define different values for each response
+# You can define different http codes for each response
 @CODE:1
 200
 
@@ -133,6 +132,9 @@ GET /test/login?action=login&type=1
 @RESPONSE:2 < example-ok.json
 @RESPONSE:3 < example-unknown-user.json
 
+# Or return body from proxied request
+@RESPONSE:4 < https://api.domain.com/?user=bob
+
 @CODE
 200
 
@@ -156,8 +158,6 @@ GET /test/status?username=*&type=1
   "status": "ok",
   "result": {
     "username": "{{ .Query "username" }}",
-    "session_id": "{{ .RandomString 64 }}",
-    "user_id": {{ .RandomNum 0 1000 }}
   }
 }
 
