@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"pkg.re/essentialkaos/ek.v1/fmtc"
+	"pkg.re/essentialkaos/ek.v1/fmtutil"
 	"pkg.re/essentialkaos/ek.v1/knf"
 	"pkg.re/essentialkaos/ek.v1/netutil"
 
@@ -49,7 +50,7 @@ func List(observer *rules.Observer, service string) error {
 		services := observer.GetServices()
 
 		if len(services) == 0 {
-			fmtc.Println("\n{y}No services and mocks are created.{!}\n")
+			fmtc.Println("\n{y}No services and mocks are created{!}\n")
 			return nil
 		}
 
@@ -73,10 +74,10 @@ func listService(observer *rules.Observer, service string) error {
 	rulesNames := observer.GetServiceRulesNames(service)
 
 	if len(rulesNames) == 0 {
-		return fmt.Errorf("Service %s is not found.", service)
+		return fmt.Errorf("Service %s is not found", service)
 	}
 
-	fmtc.Printf("\n{*r}%s{!} {s}(%d mocks){!}\n", service, len(rulesNames))
+	fmtc.Printf("\n{*r}%s{!} {s}(%s){!}\n", service, fmtutil.Pluralize(len(rulesNames), "mock", "mocks"))
 
 	for _, ruleName := range rulesNames {
 		rule := observer.GetRuleByName(service, ruleName)
