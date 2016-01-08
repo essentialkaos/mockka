@@ -1,0 +1,10 @@
+@DESCRIPTION
+Test mock file
+
+@REQUEST
+GET /test/*
+
+@RESPONSE
+{
+  "status": "ok",
+}

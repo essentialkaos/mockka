@@ -12,8 +12,10 @@ user1:password1
 @REQUEST
 GET /test?rnd=123
 
-@RESPONSE
+@RESPONSE:1
 {"test":123}
+
+@RESPONSE:2 < test.json
 
 @CODE
 200

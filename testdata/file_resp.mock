@@ -4,9 +4,13 @@ Test mock file
 @REQUEST
 GET /test
 
-@RESPONSE:1 < json/resp1.json
-@RESPONSE:2 < json/resp2.json
-@RESPONSE:3 < json/resp3.json
+@RESPONSE:1 < files/resp1.json
+@RESPONSE:2 < files/resp2.txt
+@RESPONSE:3 < files/resp3.xml
+@RESPONSE:4 < files/resp4.csv
+@RESPONSE:5 < files/resp5.html
+@RESPONSE:6 < files/resp6.unknown
+@RESPONSE:7 < files/resp7
 
 @CODE
 200

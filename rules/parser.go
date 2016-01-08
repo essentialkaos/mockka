@@ -129,7 +129,15 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 				urlStruct, err := url.Parse(reqURL)
 
 				if err == nil {
-					rule.Wildcard = getQueryWildcard(urlStruct.Query())
+					queryWildcard := getQueryWildcard(urlStruct.Query())
+
+					if queryWildcard == "" {
+						return nil, fmt.Errorf("Can't parse file %s - wildcard in REQUEST section is malformed", rule.Path)
+					}
+
+					rule.Wildcard = queryWildcard
+				} else {
+					return nil, fmt.Errorf("Can't parse file %s - can't parse query in REQUEST section", rule.Path)
 				}
 			}
 

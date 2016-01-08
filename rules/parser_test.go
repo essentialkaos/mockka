@@ -69,6 +69,11 @@ func (s *ParseSuite) TestParsingError(c *C) {
 
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_auth.mock - section AUTH is malformed")
+
+	_, err = Parse("../testdata", "", "", "error_wildcard_malformed")
+
+	c.Assert(err, Not(IsNil))
+	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_wildcard_malformed.mock - wildcard in REQUEST section is malformed")
 }
 
 func (s *ParseSuite) TestParsing(c *C) {
@@ -88,16 +93,24 @@ func (s *ParseSuite) TestParsing(c *C) {
 	c.Assert(rule.Service, Equals, "test1")
 	c.Assert(rule.Path, Equals, "../testdata/test1/dir1/test.mock")
 
+	c.Assert(rule.URI(), Equals, "test.domain:GET:/test?rnd=123")
+
 	c.Assert(rule.Desc, Equals, "Test mock file")
 	c.Assert(rule.Host, Equals, "test.domain")
 	c.Assert(rule.Request.Method, Equals, "GET")
 	c.Assert(rule.Request.URL, Equals, "/test?rnd=123")
 	c.Assert(rule.Auth.User, Equals, "user1")
 	c.Assert(rule.Auth.Password, Equals, "password1")
-	c.Assert(rule.Responses[DEFAULT].Body(), Equals, "{\"test\":123}\n")
+
 	c.Assert(rule.Responses[DEFAULT].Code, Equals, 200)
-	c.Assert(rule.Responses[DEFAULT].Headers["Content-Type"], Equals, "application/json")
 	c.Assert(rule.Responses[DEFAULT].Delay, Equals, 12.3)
+	c.Assert(rule.Responses[DEFAULT].Headers["Content-Type"], Equals, "application/json")
+
+	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":123}\n")
+	c.Assert(rule.Responses["1"].File, Equals, "")
+
+	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":\"ABCD\"}\n")
+	c.Assert(rule.Responses["2"].File, Equals, "../testdata/test1/test.json")
 }
 
 func (s *ParseSuite) TestMultiresponseParsing(c *C) {
@@ -110,8 +123,6 @@ func (s *ParseSuite) TestMultiresponseParsing(c *C) {
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
-
-	c.Assert(rule.URI(), Equals, ":GET:/test?id=314&simple=&user=bob")
 
 	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":1}\n")
 	c.Assert(rule.Responses["1"].Code, Equals, 200)
@@ -135,12 +146,33 @@ func (s *ParseSuite) TestFileResponseParsing(c *C) {
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
 
-	c.Assert(rule.Responses["1"].File, Equals, "../testdata/json/resp1.json")
+	c.Assert(rule.Responses["1"].File, Equals, "../testdata/files/resp1.json")
 	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":1}\n")
-	c.Assert(rule.Responses["2"].File, Equals, "../testdata/json/resp2.json")
-	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":2}\n")
-	c.Assert(rule.Responses["3"].File, Equals, "../testdata/json/resp3.json")
-	c.Assert(rule.Responses["3"].Body(), Equals, "")
+	c.Assert(rule.Responses["1"].Headers["Content-Type"], Equals, "text/javascript")
+
+	c.Assert(rule.Responses["2"].File, Equals, "../testdata/files/resp2.txt")
+	c.Assert(rule.Responses["2"].Body(), Equals, "TEST1234ABCD\n")
+	c.Assert(rule.Responses["2"].Headers["Content-Type"], Equals, "text/plain")
+
+	c.Assert(rule.Responses["3"].File, Equals, "../testdata/files/resp3.xml")
+	c.Assert(rule.Responses["3"].Body(), Equals, "<xml>TEST</xml>\n")
+	c.Assert(rule.Responses["3"].Headers["Content-Type"], Equals, "text/xml")
+
+	c.Assert(rule.Responses["4"].File, Equals, "../testdata/files/resp4.csv")
+	c.Assert(rule.Responses["4"].Body(), Equals, "1;TEST;ABCD\n")
+	c.Assert(rule.Responses["4"].Headers["Content-Type"], Equals, "text/csv")
+
+	c.Assert(rule.Responses["5"].File, Equals, "../testdata/files/resp5.html")
+	c.Assert(rule.Responses["5"].Body(), Equals, "<html><head><title>TEST</title></head><body>ABCD1234</body></html>\n")
+	c.Assert(rule.Responses["5"].Headers["Content-Type"], Equals, "text/html")
+
+	c.Assert(rule.Responses["6"].File, Equals, "../testdata/files/resp6.unknown")
+	c.Assert(rule.Responses["6"].Body(), Equals, "TEST1234ABCD\n")
+	c.Assert(rule.Responses["6"].Headers["Content-Type"], Equals, "text/plain")
+
+	c.Assert(rule.Responses["7"].File, Equals, "../testdata/files/resp7")
+	c.Assert(rule.Responses["7"].Body(), Equals, "")
+	c.Assert(rule.Responses["7"].Headers["Content-Type"], Equals, "text/plain")
 }
 
 func (s *ParseSuite) TestURLResponseParsing(c *C) {
@@ -171,4 +203,18 @@ func (s *ParseSuite) TestWildcardRuleParsing(c *C) {
 
 	c.Assert(rule.Wildcard, Equals, "type=1:~username")
 	c.Assert(rule.WilcardURI(), Equals, ":GET:type=1:~username")
+}
+
+func (s *ParseSuite) TestEmptyResponseRuleParsing(c *C) {
+	var (
+		rule *Rule
+		err  error
+	)
+
+	rule, err = Parse("../testdata", "", "", "empty_response")
+
+	c.Assert(rule, Not(IsNil))
+	c.Assert(err, IsNil)
+
+	c.Assert(rule.Responses, HasLen, 1)
 }
