@@ -8,6 +8,13 @@ go get github.com/essentialkaos/mockka
 ````
 
 #### Usage
+
+Show basic info about all mock files:
+````
+mockka -c /path/to/mockka.conf list
+````
+
+Run Mockka server:
 ````
 mockka -c /path/to/mockka.conf run
 ````
