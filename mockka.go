@@ -33,6 +33,7 @@ import (
 const (
 	APP  = "Mockka"
 	VER  = "1.7.0"
+	REL  = "beta1"
 	DESC = "Utility for mockking HTTP API's"
 )
 
@@ -358,9 +359,9 @@ func showUsage() {
 	info.AddOption(ARG_HELP, "Show this help message")
 	info.AddOption(ARG_VER, "Show version")
 
-	info.AddExample("run")
-	info.AddExample("make service1/test1")
-	info.AddExample("list")
+	info.AddExample("-c /path/to/mockka.conf run")
+	info.AddExample("-c /path/to/mockka.conf make service1/test1")
+	info.AddExample("-c /path/to/mockka.conf list")
 
 	info.Render()
 }
@@ -369,6 +370,7 @@ func showAbout() {
 	about := &usage.About{
 		App:     APP,
 		Version: VER,
+		Release: "." + REL,
 		Desc:    DESC,
 		Year:    2009,
 		Owner:   "ESSENTIAL KAOS",
