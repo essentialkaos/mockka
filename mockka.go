@@ -33,7 +33,6 @@ import (
 const (
 	APP  = "Mockka"
 	VER  = "1.7.0"
-	REL  = "beta1"
 	DESC = "Utility for mockking HTTP API's"
 )
 
@@ -94,7 +93,7 @@ const (
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-var argList = arg.Map{
+var argMap = arg.Map{
 	ARG_CONFIG:   &arg.V{Value: "/etc/mockka.conf"},
 	ARG_PORT:     &arg.V{Type: arg.BOOL, Min: MIN_PORT, Max: MAX_PORT},
 	ARG_DAEMON:   &arg.V{Type: arg.BOOL},
@@ -116,7 +115,7 @@ func main() {
 		return
 	}
 
-	args, errs := arg.Parse(argList)
+	args, errs := arg.Parse(argMap)
 
 	if len(errs) != 0 {
 		for _, err := range errs {
@@ -346,7 +345,7 @@ func hupSignalHandler() {
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func showUsage() {
-	info := usage.NewInfo("mck")
+	info := usage.NewInfo("")
 
 	info.AddCommand(COMMAND_RUN, "Run mockka server")
 	info.AddCommand(COMMAND_MAKE, "Create mock file from template", "name")
@@ -370,7 +369,7 @@ func showAbout() {
 	about := &usage.About{
 		App:     APP,
 		Version: VER,
-		Release: "." + REL,
+		Release: ".beta1",
 		Desc:    DESC,
 		Year:    2009,
 		Owner:   "ESSENTIAL KAOS",
