@@ -25,7 +25,7 @@ import (
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 const (
-	APP  = "Mockka Viewer"
+	APP  = "Mockka Log Viewer"
 	VER  = "1.0.0"
 	DESC = "Utility for reading and highlighting Mockka logs"
 )
@@ -46,12 +46,14 @@ const (
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
+// argMap is struct with command-line arguments
 var argMap = arg.Map{
 	ARG_NO_COLOR: &arg.V{Type: arg.BOOL},
 	ARG_HELP:     &arg.V{Type: arg.BOOL, Alias: "u:usage"},
 	ARG_VER:      &arg.V{Type: arg.BOOL, Alias: "ver"},
 }
 
+// headers is slice of sections headers
 var headers = []string{
 	"HEADERS", "COOKIES", "QUERY", "FORM DATA",
 	"REQUEST BODY", "RESPONSE BODY", "RESPONSE HEADERS",
@@ -94,6 +96,7 @@ func main() {
 	readFile(file)
 }
 
+// checkFile check given file
 func checkFile(file string) {
 	if !fsutil.IsExist(file) {
 		fmtc.Printf("{r}File %s is not exist{!}", file)
@@ -106,6 +109,7 @@ func checkFile(file string) {
 	}
 }
 
+// readFile starts file reading loop
 func readFile(file string) {
 	fd, err := os.OpenFile(file, os.O_RDONLY|os.O_APPEND, 0644)
 
@@ -170,6 +174,7 @@ func readFile(file string) {
 	}
 }
 
+// getLineType return data source type
 func getLineType(line string) int {
 	if line == "" {
 		return TYPE_EMPTY_LINE
@@ -192,10 +197,12 @@ func getLineType(line string) int {
 	return TYPE_DATA
 }
 
+// extractHeaderName return header name from data source
 func extractHeaderName(line string) string {
 	return strutil.Substr(line, 2, 99)
 }
 
+// renderLine render different type of source line
 func renderLine(line string, dataType int) {
 	switch dataType {
 	case TYPE_EMPTY_LINE:
