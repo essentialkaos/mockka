@@ -17,6 +17,6 @@ before_install:
   - go get -v pkg.re/essentialkaos/ek.v1
 
 script:
-  - go test ./rules
+  - go test -v ./rules
   - go build mockka.go
   - go build mockka-viewer.go
