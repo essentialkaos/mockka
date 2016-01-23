@@ -17,9 +17,9 @@ source /etc/init.d/kaosv
 ###############################################################################
 
 kv[prog_name]="mockka"
-kv[search_pattern]="mck"
+kv[search_pattern]="mockka"
 
-binary="/usr/bin/mck"
+binary="/usr/bin/mockka"
 conf_file="/etc/mockka.conf"
 
 kv[user]="mockka"
@@ -41,7 +41,7 @@ kv.addHandler "stop"  "stopServiceHandler"
 prepare() {
   local has_errors=""
 
-  [[ ! -x $binary ]] && has_errors=true && kv.error "<BINARY> must be executable file."
+  [[ ! -x $binary ]]    && has_errors=true && kv.error "<BINARY> must be executable file."
   [[ ! -r $conf_file ]] && has_errors=true && kv.error "<CONF_FILE> must be readable file."
   [[ ! -s $conf_file ]] && has_errors=true && kv.error "<CONF_FILE> can't be empty."
 
