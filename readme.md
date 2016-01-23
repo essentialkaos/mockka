@@ -173,6 +173,13 @@ Content-Type:application/json
 
 ````
 
+#### Build Status
+
+| Repository | Status |
+|------------|--------|
+| Stable | [![Build Status](https://travis-ci.org/essentialkaos/mockka.svg?branch=master)](https://travis-ci.org/essentialkaos/mockka) |
+| Unstable | [![Build Status](https://travis-ci.org/essentialkaos/mockka.svg?branch=develop)](https://travis-ci.org/essentialkaos/mockka) |
+
 #### License
 
 [EKOL](https://essentialkaos.com/ekol)
