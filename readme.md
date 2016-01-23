@@ -22,7 +22,7 @@ mockka -c /path/to/mockka.conf run
 #### Rule examples
 
 ##### Example 1
-````
+````bash
 # This is comment
 
 # Description is optional field
@@ -78,7 +78,7 @@ X-Seraph-LoginReason:OK
 
 ##### Example 2
 
-````
+````bash
 @DESCRIPTION
 Example mock file #2
 
@@ -123,7 +123,7 @@ X-Seraph-LoginReason:OK
 
 ##### Example 3
 
-````
+````bash
 @DESCRIPTION
 Example mock file #3
 
@@ -152,7 +152,7 @@ Content-Type:application/json
 
 ##### Example 4 (wildcard query)
 
-````
+````bash
 @DESCRIPTION
 Example mock file #4
 
