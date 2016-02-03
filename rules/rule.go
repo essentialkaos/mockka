@@ -22,37 +22,38 @@ const DEFAULT = "_default"
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 type Rule struct {
-	Name      string               // mock file name
-	FullName  string               // dir + mock file name
-	Service   string               // mock file dir name
-	Dir       string               // inner dir
-	Path      string               // full path to file
-	Desc      string               // mock description
-	Host      string               // host
-	Auth      *Auth                // basic auth login and pass
-	Request   *Request             // request method and url
-	Responses map[string]*Response // responses map
-	ModTime   time.Time            // mock file mod time
+	Name      string               // Mock file name
+	FullName  string               // Dir + mock file name
+	Service   string               // Mock file dir name
+	Dir       string               // Inner dir
+	Path      string               // Full path to file
+	Desc      string               // Mock description
+	Host      string               // Host
+	Auth      *Auth                // Basic auth login and pass
+	Request   *Request             // Request method and url
+	Responses map[string]*Response // Responses map
+	ModTime   time.Time            // Mock file mod time
 	Wildcard  string               // Wildcard string
 }
 
 type Auth struct {
-	User     string
-	Password string
+	User     string // Username
+	Password string // Password
 }
 
 type Request struct {
-	Method string
-	URL    string
+	Method string // Request method
+	URL    string // Request URL
 }
 
 type Response struct {
-	Content string
-	File    string
-	URL     string
-	Code    int
-	Headers map[string]string
-	Delay   float64
+	Content   string            // Static content
+	File      string            // Path to file with content
+	URL       string            // URL for request proxying
+	Code      int               // Status code
+	Headers   map[string]string // Map with headers
+	Delay     float64           // Response delay
+	Overwrite bool              // Proxying overwrite mode flag
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -68,7 +69,7 @@ func NewRule() *Rule {
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-// Get reponse body
+// Body return reponse body
 func (r *Response) Body() string {
 	if r.File != "" {
 		body, err := ioutil.ReadFile(r.File)
@@ -83,12 +84,12 @@ func (r *Response) Body() string {
 	return r.Content
 }
 
-// Get rule URI
+// URI return rule URI
 func (r *Rule) URI() string {
 	return r.Host + ":" + r.Request.Method + ":" + getSortedURI(r.Request.URL)
 }
 
-// Get rule wildcard uri
+// WilcardURI return rule wildcard uri
 func (r *Rule) WilcardURI() string {
 	return r.Host + ":" + r.Request.Method + ":" + r.Wildcard
 }

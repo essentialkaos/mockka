@@ -187,7 +187,11 @@ func (s *ParseSuite) TestURLResponseParsing(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(rule.Responses["1"].URL, Equals, "http://www.domain.com/api/users")
+	c.Assert(rule.Responses["1"].Overwrite, Equals, false)
 	c.Assert(rule.Responses["2"].URL, Equals, "https://www.domain.com/api/users?limit=20")
+	c.Assert(rule.Responses["2"].Overwrite, Equals, false)
+	c.Assert(rule.Responses["3"].URL, Equals, "http://www.domain.com/api/items")
+	c.Assert(rule.Responses["3"].Overwrite, Equals, true)
 }
 
 func (s *ParseSuite) TestWildcardRuleParsing(c *C) {

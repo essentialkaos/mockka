@@ -101,6 +101,7 @@ func (lr *LogRecord) Write(fd *os.File) error {
 	if lr.ResponseBody != "" {
 		fmt.Fprintf(fd, "\n+ RESPONSE BODY\n\n")
 		fmt.Fprintf(fd, lr.ResponseBody)
+		fmt.Fprintln(fd, "")
 	}
 
 	if len(lr.ResponseHeaders) != 0 {

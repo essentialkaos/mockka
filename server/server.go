@@ -152,7 +152,7 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			responseContent, bodyData, err = proxyRequest(r, rule, resp)
+			responseContent, bodyData, resp, err = proxyRequest(r, rule, resp)
 
 			if err != nil {
 				log.Error("Can't proxy request: %v", err)
@@ -424,9 +424,11 @@ func addInfoHeader(w http.ResponseWriter, r *http.Request, code int) {
 }
 
 // proxyRequest used for proxying request
-func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (string, []byte, error) {
-	var body []byte
-	var err error
+func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (string, []byte, *rules.Response, error) {
+	var (
+		err  error
+		body []byte
+	)
 
 	request := req.Request{
 		Method: rule.Request.Method,
@@ -451,17 +453,40 @@ func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (stri
 		body, err = ioutil.ReadAll(r.Body)
 
 		if err != nil {
-			return "", body, err
+			return "", nil, resp, err
 		}
 
 		request.Body = body
 	}
 
-	prxResp, err := request.Do()
+	respData, err := request.Do()
 
 	if err != nil {
-		return "", body, err
+		return "", nil, resp, err
 	}
 
-	return prxResp.String(), body, nil
+	resultResp := resp
+
+	// If overwrite flag set for response, we return headers and
+	// status code from proxied request
+	if resp.Overwrite {
+		resultResp = &rules.Response{
+			Delay:   resp.Delay,
+			Code:    respData.StatusCode,
+			Headers: headersToMap(respData.Header),
+		}
+	}
+
+	return respData.String(), body, resultResp, nil
+}
+
+// headersToMap convert headers to map with strings
+func headersToMap(headers http.Header) map[string]string {
+	var result = make(map[string]string)
+
+	for k, v := range headers {
+		result[k] = strings.Join(v, " ")
+	}
+
+	return result
 }

@@ -140,7 +140,11 @@ GET /test/login?action=login&type=1
 @RESPONSE:3 < example-unknown-user.json
 
 # Or return body from proxied request
-@RESPONSE:4 < https://api.domain.com/?user=bob
+@RESPONSE:4 < https://api.domain.com/someurl
+
+# Also you can overwrite headers and status code from rule by
+# values from proxied request response
+@RESPONSE:5 << https://api.domain.com/someurl
 
 @CODE
 200

@@ -83,15 +83,17 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 	rule.Path = path.Join(ruleDir, service, dir, mock+".mock")
 
 	var section, id, source string
+	var overwrite bool
 
 	for _, line := range data {
 		if line[0:1] == "@" {
-			section, id, source = parseSectionHeader(line)
+			section, id, source, overwrite = parseSectionHeader(line)
 
 			if section == "RESPONSE" && source != "" {
 				resp := getResponse(rule, id)
 
 				if httputil.IsURL(source) {
+					resp.Overwrite = overwrite
 					resp.URL = source
 				} else {
 					resp.Headers["Content-Type"] = guessContentType(source)
@@ -208,17 +210,22 @@ func checkMockFile(file string) error {
 	return nil
 }
 
-func parseSectionHeader(header string) (string, string, string) {
+func parseSectionHeader(header string) (string, string, string, bool) {
 	var slice []string
 
 	var (
-		section = ""
-		id      = DEFAULT
-		source  = ""
+		section   = ""
+		id        = DEFAULT
+		source    = ""
+		overwrite = false
 	)
+
 	section = strings.Replace(header[1:], " ", "", -1)
 
-	if strings.Contains(section, "<") {
+	if strings.Contains(section, "<<") {
+		slice = strings.Split(section, "<<")
+		source, section, overwrite = slice[1], slice[0], true
+	} else if strings.Contains(section, "<") {
 		slice = strings.Split(section, "<")
 		source, section = slice[1], slice[0]
 	}
@@ -228,7 +235,7 @@ func parseSectionHeader(header string) (string, string, string) {
 		id, section = slice[1], slice[0]
 	}
 
-	return strings.ToUpper(section), id, source
+	return strings.ToUpper(section), id, source, overwrite
 }
 
 func parseRequestInfo(request string) (string, string) {
