@@ -55,8 +55,12 @@ var argMap = arg.Map{
 
 // headers is slice of sections headers
 var headers = []string{
-	"HEADERS", "COOKIES", "QUERY", "FORM DATA",
-	"REQUEST BODY", "RESPONSE BODY", "RESPONSE HEADERS",
+	"HEADERS",
+	"COOKIES",
+	"QUERY",
+	"REQUEST BODY",
+	"RESPONSE BODY",
+	"RESPONSE HEADERS",
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //

@@ -27,7 +27,6 @@ type LogRecord struct {
 	Method          string    `json:"method"`
 	Request         string    `json:"request"`
 	Query           []*kv.KV  `json:"query"`
-	FormData        []*kv.KV  `json:"form_data"`
 	RequestHeaders  []*kv.KV  `json:"request_headers"`
 	ResponseHeaders []*kv.KV  `json:"response_headers"`
 	RequestBody     string    `json:"request_body"`
@@ -91,19 +90,12 @@ func (lr *LogRecord) Write(fd *os.File) error {
 				fmt.Fprintf(fd, "  %-24s %s\n", q.Key+":", q.String())
 			}
 		}
-	} else {
-		if len(lr.FormData) != 0 {
-			fmt.Fprintf(fd, "\n+ FORM DATA\n\n")
-
-			for _, f := range lr.FormData {
-				fmt.Fprintf(fd, "  %-24s %s\n", f.Key+":", f.String())
-			}
-		}
 	}
 
 	if lr.RequestBody != "" {
 		fmt.Fprintf(fd, "\n+ REQUEST BODY\n\n")
 		fmt.Fprintf(fd, lr.RequestBody)
+		fmt.Fprintln(fd, "")
 	}
 
 	if lr.ResponseBody != "" {

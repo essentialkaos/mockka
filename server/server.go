@@ -131,11 +131,12 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 		resp = getRandomResponse(rule)
 	}
 
-	var content = ""
+	var responseContent string
+	var bodyData []byte
 
 	if r.Method != "HEAD" {
 		if resp.URL == "" {
-			content, err = renderTemplate(r, resp.Body())
+			responseContent, err = renderTemplate(r, resp.Body())
 
 			if err != nil {
 				log.Error("Can't render response body: %v", err)
@@ -151,7 +152,7 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			content, err = proxyRequest(r, rule, resp)
+			responseContent, bodyData, err = proxyRequest(r, rule, resp)
 
 			if err != nil {
 				log.Error("Can't proxy request: %v", err)
@@ -162,12 +163,12 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	logRequestInfo(r, rule, resp, content)
-	processRequest(w, r, rule, resp, content)
+	logRequestInfo(r, rule, resp, responseContent, bodyData)
+	processRequest(w, r, rule, resp, responseContent)
 }
 
 // processRequest process http request and use found rule for formating output data
-func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, resp *rules.Response, content string) {
+func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, resp *rules.Response, responseContent string) {
 	var defResp *rules.Response
 	var headers map[string]string
 	var ok bool
@@ -215,12 +216,12 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	addInfoHeader(w, r, X_MOCKKA_CODE_OK)
 
 	w.WriteHeader(code)
-	w.Write([]byte(content))
+	w.Write([]byte(responseContent))
 }
 
 // logRequestInfo create log file and write record with info about request and reponse
 // into this file
-func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, content string) {
+func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, responseContent string, bodyData []byte) {
 	filePath := knf.GetS(MAIN_LOG_DIR) + "/" + rule.Service + ".log"
 	requredPermChange := !fsutil.IsExist(filePath)
 
@@ -233,7 +234,7 @@ func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, c
 
 	defer fd.Close()
 
-	err = makeLogRecord(req, rule, resp, content).Write(fd)
+	err = makeLogRecord(req, rule, resp, responseContent, bodyData).Write(fd)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -246,8 +247,8 @@ func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, c
 }
 
 // renderTemplate render output body template
-func renderTemplate(req *http.Request, content string) (string, error) {
-	templ, err := template.New("").Parse(content)
+func renderTemplate(req *http.Request, responseContent string) (string, error) {
+	templ, err := template.New("").Parse(responseContent)
 
 	if err != nil {
 		return "", err
@@ -279,7 +280,8 @@ func getRandomResponse(rule *rules.Rule) *rules.Response {
 	return rule.Responses[ids[rand.Int(len(ids)-1)]]
 }
 
-func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, content string) *LogRecord {
+// makeLogRecord create log record struct
+func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, responseContent string, bodyData []byte) *LogRecord {
 	record := &LogRecord{Date: time.Now()}
 
 	record.Mock = rule.Path
@@ -317,28 +319,28 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, co
 		record.Cookies = getSortedCookies(cookies)
 	}
 
-	req.ParseForm()
-
 	if req.Method == "GET" {
 		query := req.URL.Query()
 
 		if len(query) != 0 {
 			record.Query = getSortedValues(query)
 		}
-	} else {
-		if len(req.Form) != 0 {
-			record.FormData = getSortedValues(req.Form)
+	}
+
+	if req.ContentLength > 0 {
+		if len(bodyData) != 0 {
+			record.RequestBody = string(bodyData[:])
+		} else {
+			body, err := ioutil.ReadAll(req.Body)
+
+			if err == nil && len(body) != 0 {
+				record.RequestBody = string(body[:])
+			}
 		}
 	}
 
-	body, err := ioutil.ReadAll(req.Body)
-
-	if err == nil && len(body) != 0 {
-		record.RequestBody = string(body[:])
-	}
-
-	if content != "" {
-		record.ResponseBody = content
+	if responseContent != "" {
+		record.ResponseBody = responseContent
 	}
 
 	if len(resp.Headers) != 0 {
@@ -422,12 +424,16 @@ func addInfoHeader(w http.ResponseWriter, r *http.Request, code int) {
 }
 
 // proxyRequest used for proxying request
-func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (string, error) {
+func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (string, []byte, error) {
+	var body []byte
+	var err error
+
 	request := req.Request{
 		Method: rule.Request.Method,
 		URL:    resp.URL,
 	}
 
+	// Append headers from initial request
 	if len(r.Header) != 0 {
 		headers := make(map[string]string)
 
@@ -438,15 +444,24 @@ func proxyRequest(r *http.Request, rule *rules.Rule, resp *rules.Response) (stri
 		request.Headers = headers
 	}
 
-	if r.Body != nil {
-		request.Body = r.Body
+	// If we have request body send it
+	// Because request.Body is ReadCloser we must read body data
+	// for logging and return it from this method
+	if r.ContentLength > 0 {
+		body, err = ioutil.ReadAll(r.Body)
+
+		if err != nil {
+			return "", body, err
+		}
+
+		request.Body = body
 	}
 
-	prResp, err := request.Do()
+	prxResp, err := request.Do()
 
 	if err != nil {
-		return "", err
+		return "", body, err
 	}
 
-	return prResp.String(), nil
+	return prxResp.String(), body, nil
 }
