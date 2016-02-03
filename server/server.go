@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -67,6 +66,14 @@ var (
 	stabber     *Stabber
 )
 
+var errorDesc = map[int]string{
+	X_MOCKKA_NO_RULE:     "RuleNotFound",
+	X_MOCKKA_NO_RESPONSE: "ResponseNotFound",
+	X_MOCKKA_CANT_RENDER: "CantRenderTemplate",
+	X_MOCKKA_CANT_PROXY:  "CantProxyRequest",
+	X_MOCKKA_FORBIDDEN:   "ForbidenAction",
+}
+
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 // Start starts mockka HTTP server
@@ -114,16 +121,14 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 
 	if rule == nil {
 		log.Error("Can't find rule for request %s (%s)", r.URL.String(), r.Method)
-		addInfoHeader(w, r, X_MOCKKA_NO_RULE)
-		w.WriteHeader(ERROR_HTTP_CODE)
+		writeError(w, r, X_MOCKKA_NO_RULE)
 		return
 	}
 
 	switch len(rule.Responses) {
 	case 0:
 		log.Error("Can't find response for request %s (%s)", r.URL.String(), r.Method)
-		addInfoHeader(w, r, X_MOCKKA_NO_RESPONSE)
-		w.WriteHeader(ERROR_HTTP_CODE)
+		writeError(w, r, X_MOCKKA_NO_RESPONSE)
 		return
 	case 1:
 		resp = rule.Responses[rules.DEFAULT]
@@ -140,15 +145,13 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 
 			if err != nil {
 				log.Error("Can't render response body: %v", err)
-				addInfoHeader(w, r, X_MOCKKA_CANT_RENDER)
-				w.WriteHeader(ERROR_HTTP_CODE)
+				writeError(w, r, X_MOCKKA_CANT_RENDER)
 				return
 			}
 		} else {
 			if !knf.GetB(PROCESSING_ALLOW_PROXYING) {
 				log.Error("Can't proxy request: proxying disabled in configuration file")
-				addInfoHeader(w, r, X_MOCKKA_FORBIDDEN)
-				w.WriteHeader(ERROR_HTTP_CODE)
+				writeError(w, r, X_MOCKKA_FORBIDDEN)
 				return
 			}
 
@@ -156,8 +159,7 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 
 			if err != nil {
 				log.Error("Can't proxy request: %v", err)
-				addInfoHeader(w, r, X_MOCKKA_CANT_PROXY)
-				w.WriteHeader(ERROR_HTTP_CODE)
+				writeError(w, r, X_MOCKKA_CANT_PROXY)
 				return
 			}
 		}
@@ -212,8 +214,6 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	for k, v := range headers {
 		w.Header().Set(k, v)
 	}
-
-	addInfoHeader(w, r, X_MOCKKA_CODE_OK)
 
 	w.WriteHeader(code)
 	w.Write([]byte(responseContent))
@@ -417,10 +417,9 @@ func getSortedCookies(cookies []*http.Cookie) []string {
 }
 
 // addInfoHeader adds special header with error code
-func addInfoHeader(w http.ResponseWriter, r *http.Request, code int) {
-	if r.Header.Get("Mockka") != "" {
-		w.Header().Add("X-Mockka-Code", strconv.Itoa(code))
-	}
+func writeError(w http.ResponseWriter, r *http.Request, code int) {
+	w.Header().Add("X-Mockka-Error", errorDesc[code])
+	w.WriteHeader(ERROR_HTTP_CODE)
 }
 
 // proxyRequest used for proxying request
