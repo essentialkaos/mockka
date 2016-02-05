@@ -17,6 +17,7 @@ import (
 	"pkg.re/essentialkaos/ek.v1/arg"
 	"pkg.re/essentialkaos/ek.v1/fmtc"
 	"pkg.re/essentialkaos/ek.v1/fsutil"
+	"pkg.re/essentialkaos/ek.v1/knf"
 	"pkg.re/essentialkaos/ek.v1/sliceutil"
 	"pkg.re/essentialkaos/ek.v1/strutil"
 	"pkg.re/essentialkaos/ek.v1/usage"
@@ -63,6 +64,13 @@ var headers = []string{
 	"RESPONSE HEADERS",
 }
 
+// confPaths is slice with valid config paths
+var confPaths = []string{
+	"/etc/mockka.conf",
+	"~/mockka.conf",
+	"mockka.conf",
+}
+
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func Init() {
@@ -94,7 +102,7 @@ func Init() {
 		return
 	}
 
-	file := args[0]
+	file := findFile(args[0])
 
 	checkFile(file)
 	readFile(file)
@@ -103,12 +111,12 @@ func Init() {
 // checkFile check given file
 func checkFile(file string) {
 	if !fsutil.IsExist(file) {
-		fmtc.Printf("{r}File %s is not exist{!}", file)
+		fmtc.Printf("{r}File %s is not exist{!}\n", file)
 		os.Exit(1)
 	}
 
 	if !fsutil.IsReadable(file) {
-		fmtc.Printf("{r}File %s is not readable{!}", file)
+		fmtc.Printf("{r}File %s is not readable{!}\n", file)
 		os.Exit(1)
 	}
 }
@@ -221,6 +229,40 @@ func renderLine(line string, dataType int) {
 	}
 }
 
+// findFile try to find log file
+func findFile(file string) string {
+	if fsutil.IsExist(file) {
+		return file
+	}
+
+	configPath := fsutil.ProperPath("FRS", confPaths)
+
+	fmtc.Println(configPath)
+
+	if configPath == "" {
+		return file
+	}
+
+	config, err := knf.Read(configPath)
+	logDir := config.GetS("main:log-dir")
+
+	fmtc.Println(logDir)
+
+	if err != nil || logDir == "" {
+		return file
+	}
+
+	if !strings.Contains(file, ".log") {
+		file += ".log"
+	}
+
+	if fsutil.CheckPerms("FRS", logDir+"/"+file) {
+		return logDir + "/" + file
+	}
+
+	return file
+}
+
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func showUsage() {
@@ -229,6 +271,10 @@ func showUsage() {
 	info.AddOption(ARG_NO_COLOR, "Disable colors in output")
 	info.AddOption(ARG_HELP, "Show this help message")
 	info.AddOption(ARG_VER, "Show version")
+
+	info.AddExample("/path/to/file.log", "Read log file")
+	info.AddExample("file.log", "Try to find file.log in mockka logs directory")
+	info.AddExample("file", "Try to find file.log in mockka logs directory")
 
 	info.Render()
 }
@@ -240,7 +286,7 @@ func showAbout() {
 		Desc:    DESC,
 		Year:    2009,
 		Owner:   "ESSENTIAL KAOS",
-		License: "Essential Kaos Open Source License <http://essentialkaos.com/ekol?en>",
+		License: "Essential Kaos Open Source License <https://essentialkaos.com/ekol?en>",
 	}
 
 	about.Render()

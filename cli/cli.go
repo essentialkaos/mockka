@@ -373,7 +373,7 @@ func showAbout() {
 		Desc:    DESC,
 		Year:    2009,
 		Owner:   "ESSENTIAL KAOS",
-		License: "Essential Kaos Open Source License <http://essentialkaos.com/ekol?en>",
+		License: "Essential Kaos Open Source License <https://essentialkaos.com/ekol?en>",
 	}
 
 	about.Render()
