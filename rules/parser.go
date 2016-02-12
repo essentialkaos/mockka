@@ -13,12 +13,13 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/httputil"
+
+	"github.com/essentialkaos/mockka/urlutil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -76,11 +77,13 @@ func Parse(ruleDir, service, dir, mock string) (*Rule, error) {
 func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, error) {
 	var rule = NewRule()
 
-	rule.Name = mock
-	rule.FullName = path.Join(dir, mock)
 	rule.Dir = dir
+	rule.Name = mock
 	rule.Service = service
+	rule.FullName = path.Join(dir, mock)
+	rule.PrettyPath = rule.Service + "/" + rule.FullName
 	rule.Path = path.Join(ruleDir, service, dir, mock+".mock")
+	rule.Request = &Request{}
 
 	var section, id, source string
 	var overwrite bool
@@ -114,7 +117,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			rule.Desc += line
 
 		case "HOST":
-			rule.Host = strings.TrimRight(line, " ")
+			rule.Request.Host = strings.TrimRight(line, " ")
 
 		case "REQUEST":
 			reqMethod, reqURL := parseRequestInfo(line)
@@ -128,22 +131,16 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 			}
 
 			if strings.Contains(reqURL, "*") {
-				urlStruct, err := url.Parse(reqURL)
+				_, err := url.Parse(reqURL)
 
 				if err == nil {
-					queryWildcard := getQueryWildcard(urlStruct.Query())
-
-					if queryWildcard == "" {
-						return nil, fmt.Errorf("Can't parse file %s - wildcard in REQUEST section is malformed", rule.Path)
-					}
-
-					rule.Wildcard = queryWildcard
+					rule.IsWildcard = strings.Contains(reqURL, "*")
 				} else {
 					return nil, fmt.Errorf("Can't parse file %s - can't parse query in REQUEST section", rule.Path)
 				}
 			}
 
-			rule.Request = &Request{reqMethod, reqURL}
+			rule.Request.Method, rule.Request.URL = reqMethod, reqURL
 
 		case "RESPONSE":
 			getResponse(rule, id).Content += line + "\n"
@@ -190,6 +187,9 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 	if len(rule.Responses) == 0 {
 		rule.Responses[DEFAULT] = &Response{Headers: make(map[string]string)}
 	}
+
+	rule.Request.NURL = urlutil.SortParams(rule.Request.URL)
+	rule.Request.URI = rule.Request.Host + ":" + rule.Request.Method + ":" + rule.Request.NURL
 
 	mtime, _ := fsutil.GetMTime(rule.Path)
 	rule.ModTime = mtime
@@ -280,27 +280,4 @@ func guessContentType(file string) string {
 	}
 
 	return "text/plain"
-}
-
-func getQueryWildcard(values url.Values) string {
-	var queryItems []string
-
-	for itemName, item := range values {
-		itemValue := strings.Join(item, "")
-
-		switch itemValue {
-		case "*":
-			queryItems = append(queryItems, "~"+itemName)
-		default:
-			queryItems = append(queryItems, itemName+"="+itemValue)
-		}
-	}
-
-	if len(queryItems) == 0 {
-		return ""
-	}
-
-	sort.Strings(queryItems)
-
-	return strings.Join(queryItems, ":")
 }

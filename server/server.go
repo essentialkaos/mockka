@@ -298,8 +298,8 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, re
 		record.RemoteAdress = req.RemoteAddr
 	}
 
-	if rule.Host != "" {
-		record.RequestHost = rule.Host
+	if rule.Request.Host != "" {
+		record.RequestHost = rule.Request.Host
 	}
 
 	record.ResponseURL = resp.URL

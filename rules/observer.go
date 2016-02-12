@@ -8,10 +8,8 @@ package rules
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path"
 	"sort"
 	"strings"
 	"time"
@@ -19,19 +17,24 @@ import (
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/httputil"
 	"pkg.re/essentialkaos/ek.v1/log"
+	"pkg.re/essentialkaos/ek.v1/path"
+
+	"github.com/essentialkaos/mockka/urlutil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
+type RuleMap map[string]*Rule
+
 type Observer struct {
 	AutoHead bool
 
-	uriMap  map[string]*Rule            // method+url -> rule
-	pathMap map[string]*Rule            // full path -> rule
-	wcMap   map[string]*Rule            // Wilcard string -> rule
-	nameMap map[string]map[string]*Rule // service -> full name (with dir) -> rule
-	errMap  map[string]bool             // full name -> has error
-	srvMap  map[string]bool             // service name -> true
+	uriMap  RuleMap            // host+method+url -> rule
+	pathMap RuleMap            // full path -> rule
+	wcMap   RuleMap            // full path -> rule (only wildcard)
+	nameMap map[string]RuleMap // service -> full name (with dir) -> rule
+	errMap  map[string]bool    // full name -> has error
+	srvMap  map[string]bool    // service name -> true
 
 	ruleDir string
 	works   bool
@@ -43,10 +46,10 @@ type Observer struct {
 func NewObserver(ruleDir string) *Observer {
 	return &Observer{
 		ruleDir: ruleDir,
-		uriMap:  make(map[string]*Rule),
-		pathMap: make(map[string]*Rule),
-		wcMap:   make(map[string]*Rule),
-		nameMap: make(map[string]map[string]*Rule),
+		uriMap:  make(RuleMap),
+		pathMap: make(RuleMap),
+		wcMap:   make(RuleMap),
+		nameMap: make(map[string]RuleMap),
 		errMap:  make(map[string]bool),
 		srvMap:  make(map[string]bool),
 	}
@@ -54,7 +57,7 @@ func NewObserver(ruleDir string) *Observer {
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-// Start observer
+// Start start observer
 func (obs *Observer) Start(checkDelay int) {
 	if obs.works {
 		return
@@ -62,30 +65,27 @@ func (obs *Observer) Start(checkDelay int) {
 
 	obs.works = true
 
-	go obs.watch(checkDelay)
+	go obs.watch(time.Duration(checkDelay) * time.Second)
 }
 
-// Load rules
-func (obs *Observer) Load() []string {
-	var messages []string
+// Load load and parse all rules
+func (obs *Observer) Load() bool {
+	var ok = true
 
 	for _, r := range obs.uriMap {
 		if !fsutil.IsExist(r.Path) {
-			delete(obs.uriMap, r.URI())
-			delete(obs.errMap, r.URI())
+			delete(obs.uriMap, r.Request.URI)
+			delete(obs.wcMap, r.Path)
+			delete(obs.errMap, r.Path)
 			delete(obs.pathMap, r.Path)
 			delete(obs.nameMap[r.Service], r.FullName)
-
-			if r.Wildcard != "" {
-				delete(obs.wcMap, r.WilcardURI())
-			}
 
 			// If no one rule found for service, remove it's own map
 			if len(obs.nameMap[r.Service]) == 0 {
 				delete(obs.nameMap, r.Service)
 			}
 
-			messages = append(messages, fmt.Sprintf("Rule %s unloaded (mock file deleted)", path.Join(r.Service, r.FullName)))
+			log.Info("Rule %s unloaded (mock file deleted)", r.PrettyPath)
 
 			continue
 		}
@@ -96,72 +96,60 @@ func (obs *Observer) Load() []string {
 			rule, err := Parse(obs.ruleDir, r.Service, r.Dir, r.Name)
 
 			if err != nil {
-				messages = append(messages, fmt.Sprintf("[ERROR] Can't parse rule file - %s", err.Error()))
+				log.Error("Can't parse rule file: %v", err)
+				ok = false
 				continue
 			}
 
 			// URI can be changed, remove rule from uri map anyway
-			delete(obs.uriMap, r.URI())
-			delete(obs.errMap, r.URI())
+			delete(obs.uriMap, r.Request.URI)
+			delete(obs.errMap, r.Path)
 
-			if r.Wildcard != "" {
-				delete(obs.wcMap, r.WilcardURI())
+			if r.IsWildcard {
+				delete(obs.wcMap, r.Path)
 			}
 
-			obs.uriMap[rule.URI()] = rule
+			obs.uriMap[rule.Request.URI] = rule
 			obs.pathMap[rule.Path] = rule
 
-			if rule.Wildcard != "" {
-				obs.wcMap[rule.WilcardURI()] = rule
+			if rule.IsWildcard {
+				obs.wcMap[rule.Path] = rule
 			}
 
-			messages = append(messages, fmt.Sprintf("Rule %s reloaded", path.Join(rule.Service, rule.FullName)))
+			log.Info("Rule %s reloaded", rule.PrettyPath)
 		}
 	}
 
 	dl, err := ioutil.ReadDir(obs.ruleDir)
 
 	if err != nil {
-		messages = append(messages, fmt.Sprintf("Can't list directory with rules (%s)", obs.ruleDir))
+		log.Error("Can't list directory with rules (%s)", obs.ruleDir)
 	}
 
 	for _, di := range dl {
+
 		// Ignore all files in rules directory
 		if !di.IsDir() {
 			continue
 		}
 
 		service := di.Name()
-		messages = append(messages, obs.checkDir(service, "")...)
-	}
 
-	return messages
-}
-
-// Get rule struct by request struct
-func (obs *Observer) GetRule(r *http.Request) *Rule {
-	var rule *Rule
-
-	autoHead := obs.AutoHead && r.Method == "HEAD"
-
-	rule = findRule(obs.uriMap, r, false, autoHead)
-
-	if rule != nil {
-		return rule
-	}
-
-	if len(obs.wcMap) != 0 {
-		rule = findRule(obs.wcMap, r, true, autoHead)
-
-		if rule != nil {
-			return rule
+		if !obs.checkDir(service, "") && ok {
+			ok = false
 		}
 	}
 
-	return nil
+	return ok
 }
 
-// Get rule by full name (i.e. service/dir/mock>)
+// GetRule return rule for request
+func (obs *Observer) GetRule(r *http.Request) *Rule {
+	autoHead := obs.AutoHead && r.Method == "HEAD"
+	return findRule(obs.uriMap, obs.wcMap, r, autoHead)
+}
+
+// GetRuleByName return rule by full name (i.e. service/dir/mock>)
 func (obs *Observer) GetRuleByName(service, name string) *Rule {
 	if !obs.srvMap[service] {
 		return nil
@@ -170,7 +158,7 @@ func (obs *Observer) GetRuleByName(service, name string) *Rule {
 	return obs.nameMap[service][name]
 }
 
-// Get services names list
+// GetServices return services names list
 func (obs *Observer) GetServices() []string {
 	var result []string
 
@@ -187,7 +175,7 @@ func (obs *Observer) GetServices() []string {
 	return result
 }
 
-// Get rules full names (with dirs)
+// GetServiceRulesNames return rules full names (with dirs)
 func (obs *Observer) GetServiceRulesNames(service string) []string {
 	var result []string
 
@@ -206,160 +194,159 @@ func (obs *Observer) GetServiceRulesNames(service string) []string {
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-func (obs *Observer) checkDir(service, dir string) []string {
-	var messages []string
+func (obs *Observer) checkDir(service, dir string) bool {
+	var ok = true
 
 	rl, err := ioutil.ReadDir(path.Join(obs.ruleDir, service, dir))
 
 	if err != nil {
-		messages = append(messages, fmt.Sprintf("[ERROR] %s", err.Error()))
-		return messages
+		log.Error(err.Error())
+		return false
 	}
 
+RULELOOP:
 	for _, ri := range rl {
 		filename := ri.Name()
 
-		if ri.IsDir() && filename[0:1] != "." {
-			messages = append(messages, obs.checkDir(service, path.Join(dir, filename))...)
+		if ri.IsDir() && !path.IsDotfile(filename) {
+			if !obs.checkDir(service, path.Join(dir, filename)) {
+				ok = false
+			}
+
 			continue
 		}
 
-		// Ignore all files without .mock extension
+		// Ignore all files without .mock extension (backup files, temporary files)
 		if path.Ext(filename) != ".mock" {
 			continue
 		}
 
 		fullpath := path.Join(obs.ruleDir, service, dir, filename)
-		_, readed := obs.pathMap[fullpath]
 
-		if readed {
+		// Skip rule if it already successfully parsed
+		if obs.pathMap[fullpath] != nil {
 			continue
 		}
 
 		rule, err := Parse(obs.ruleDir, service, dir, strings.Replace(filename, ".mock", "", -1))
 
 		if err != nil {
-			if obs.errMap[rule.URI()] != true {
-				messages = append(messages, fmt.Sprintf("[ERROR] Can't parse rule file - %s", err.Error()))
-				obs.errMap[rule.URI()] = true
+			if obs.errMap[rule.Path] != true {
+				log.Error("Can't parse rule %s: %v", rule.PrettyPath, err)
+				obs.errMap[rule.Path] = true
+				ok = false
 			}
 
 			continue
 		}
 
-		if obs.uriMap[rule.URI()] != nil || obs.wcMap[rule.WilcardURI()] != nil {
-			if obs.errMap[rule.URI()] != true {
-				messages = append(messages, fmt.Sprintf("[ERROR] Can't apply rule from %s - rule already exist for given method/url pair", path.Join(rule.Service, rule.FullName)))
-				obs.errMap[rule.URI()] = true
+		for _, r := range obs.wcMap {
+			if r.Request.Method != rule.Request.Method {
+				continue
 			}
 
-			continue
+			if r.Request.Host != rule.Request.Host {
+				continue
+			}
+
+			if urlutil.EqualPatterns(r.Request.NURL, rule.Request.NURL) {
+				if obs.errMap[rule.Path] != true {
+					log.Error("Rule intersection: rule %s and rule %s have same result urls", rule.PrettyPath, r.PrettyPath)
+					obs.errMap[rule.Path] = true
+					ok = false
+				}
+
+				continue RULELOOP
+			}
 		}
 
-		delete(obs.errMap, rule.URI())
+		delete(obs.errMap, rule.Path)
 
-		obs.uriMap[rule.URI()] = rule
+		obs.uriMap[rule.Request.URI] = rule
 		obs.pathMap[rule.Path] = rule
 		obs.srvMap[service] = true
 
-		if rule.Wildcard != "" {
-			obs.wcMap[rule.WilcardURI()] = rule
+		if rule.IsWildcard {
+			obs.wcMap[rule.Path] = rule
 		}
 
 		if obs.nameMap[service] == nil {
-			obs.nameMap[service] = make(map[string]*Rule)
+			obs.nameMap[service] = make(RuleMap)
 		}
 
 		obs.nameMap[service][rule.FullName] = rule
 
-		messages = append(messages, fmt.Sprintf("Rule %s loaded", path.Join(rule.Service, rule.FullName)))
+		log.Info("Rule %s loaded", rule.PrettyPath)
 	}
 
-	return messages
+	return ok
 }
 
-func (obs *Observer) watch(checkDelay int) {
+func (obs *Observer) watch(checkDelay time.Duration) {
 	for {
-		messages := obs.Load()
-
-		if len(messages) != 0 {
-			for _, message := range messages {
-				log.Info(message)
-			}
-		}
-
-		time.Sleep(time.Duration(checkDelay) * time.Second)
+		obs.Load()
+		time.Sleep(checkDelay)
 	}
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-func findRule(data map[string]*Rule, r *http.Request, wildcard, autoHead bool) *Rule {
+func findRule(uriMap, wcMap RuleMap, r *http.Request, autoHead bool) *Rule {
 	var result *Rule
-	var uri string
 
 	host := httputil.GetRequestHost(r)
+	uri := urlutil.SortURLParams(r.URL)
 
-	if !wildcard {
-		uri = getSortedRequestURI(r)
-	} else {
-		uri = getQueryWildcard(r.URL.Query())
-	}
+	log.Debug("Request: (%s) %s", host, uri)
 
-	result = getRule(data, host, r.Method, uri)
+	result = getRule(uriMap, host, r.Method, uri)
 
 	if result != nil {
 		return result
 	}
 
-	if !autoHead {
+	if autoHead {
+		for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
+			result = getRule(uriMap, host, method, uri)
+
+			if result != nil {
+				return result
+			}
+		}
+	}
+
+	if len(wcMap) == 0 {
 		return nil
 	}
 
-	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
-		result = getRule(data, host, method, uri)
+	for _, rule := range wcMap {
+		if !autoHead && rule.Request.Method != r.Method {
+			continue
+		}
 
-		if result != nil {
-			return result
+		if rule.Request.Host != "" && host != rule.Request.Host {
+			continue
+		}
+
+		// For matching we use normalized url (with sorted get params)
+		if urlutil.Match(rule.Request.NURL, uri) {
+			return rule
 		}
 	}
 
 	return nil
 }
 
-func getRule(data map[string]*Rule, host, method, uri string) *Rule {
+func getRule(ruleMap RuleMap, host, method, uri string) *Rule {
 	var result *Rule
 
-	result = data[host+":"+method+":"+uri]
+	result = ruleMap[host+":"+method+":"+uri]
 
 	if result != nil {
 		return result
 	}
 
-	result = data[":"+method+":"+uri]
+	result = ruleMap[":"+method+":"+uri]
 
 	return result
-}
-
-func getSortedRequestURI(r *http.Request) string {
-	if !strings.Contains(r.RequestURI, "?") {
-		return r.RequestURI
-	}
-
-	query := r.URL.Query()
-	result := r.URL.Path + "?"
-
-	var sortedQuery []string
-
-	for qp := range query {
-		sortedQuery = append(sortedQuery, qp)
-	}
-
-	sort.Strings(sortedQuery)
-
-	for _, qp := range sortedQuery {
-		result += qp + "=" + strings.Join(query[qp], "") + "&"
-	}
-
-	return result[0 : len(result)-1]
 }

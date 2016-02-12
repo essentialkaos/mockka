@@ -104,25 +104,17 @@ func Init() {
 
 	file := findFile(args[0])
 
-	checkFile(file)
 	readFile(file)
-}
-
-// checkFile check given file
-func checkFile(file string) {
-	if !fsutil.IsExist(file) {
-		fmtc.Printf("{r}File %s is not exist{!}\n", file)
-		os.Exit(1)
-	}
-
-	if !fsutil.IsReadable(file) {
-		fmtc.Printf("{r}File %s is not readable{!}\n", file)
-		os.Exit(1)
-	}
 }
 
 // readFile starts file reading loop
 func readFile(file string) {
+	for {
+		if fsutil.CheckPerms("FR", file) {
+			break
+		}
+	}
+
 	fd, err := os.OpenFile(file, os.O_RDONLY|os.O_APPEND, 0644)
 
 	if err != nil {

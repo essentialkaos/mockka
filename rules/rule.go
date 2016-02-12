@@ -9,9 +9,6 @@ package rules
 
 import (
 	"io/ioutil"
-	"net/url"
-	"sort"
-	"strings"
 	"time"
 )
 
@@ -22,18 +19,18 @@ const DEFAULT = "_default"
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 type Rule struct {
-	Name      string               // Mock file name
-	FullName  string               // Dir + mock file name
-	Service   string               // Mock file dir name
-	Dir       string               // Inner dir
-	Path      string               // Full path to file
-	Desc      string               // Mock description
-	Host      string               // Host
-	Auth      *Auth                // Basic auth login and pass
-	Request   *Request             // Request method and url
-	Responses map[string]*Response // Responses map
-	ModTime   time.Time            // Mock file mod time
-	Wildcard  string               // Wildcard string
+	Name       string               // Mock file name
+	FullName   string               // Dir + mock file name
+	Service    string               // Mock file dir name
+	Dir        string               // Inner dir
+	Path       string               // Full path to file
+	PrettyPath string               // Service + FullName
+	Desc       string               // Mock description
+	Auth       *Auth                // Basic auth login and pass
+	Request    *Request             // Request method and url
+	Responses  map[string]*Response // Responses map
+	ModTime    time.Time            // Mock file mod time
+	IsWildcard bool                 // Wildcard marker
 }
 
 type Auth struct {
@@ -42,8 +39,11 @@ type Auth struct {
 }
 
 type Request struct {
+	Host   string // Request host
 	Method string // Request method
 	URL    string // Request URL
+	NURL   string // Normalized (sorted) URL
+	URI    string // URI (host + method + normalized url)
 }
 
 type Response struct {
@@ -84,43 +84,4 @@ func (r *Response) Body() string {
 	return r.Content
 }
 
-// URI return rule URI
-func (r *Rule) URI() string {
-	return r.Host + ":" + r.Request.Method + ":" + getSortedURI(r.Request.URL)
-}
-
-// WilcardURI return rule wildcard uri
-func (r *Rule) WilcardURI() string {
-	return r.Host + ":" + r.Request.Method + ":" + r.Wildcard
-}
-
 // ////////////////////////////////////////////////////////////////////////////////// //
-
-func getSortedURI(uri string) string {
-	if !strings.Contains(uri, "?") {
-		return uri
-	}
-
-	u, err := url.Parse(uri)
-
-	if err != nil {
-		return uri
-	}
-
-	query := u.Query()
-	result := u.Path + "?"
-
-	var sortedQuery []string
-
-	for qp := range query {
-		sortedQuery = append(sortedQuery, qp)
-	}
-
-	sort.Strings(sortedQuery)
-
-	for _, qp := range sortedQuery {
-		result += qp + "=" + strings.Join(query[qp], "") + "&"
-	}
-
-	return result[0 : len(result)-1]
-}

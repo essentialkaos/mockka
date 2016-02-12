@@ -69,11 +69,6 @@ func (s *ParseSuite) TestParsingError(c *C) {
 
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_auth.mock - section AUTH is malformed")
-
-	_, err = Parse("../testdata", "", "", "error_wildcard_malformed")
-
-	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_wildcard_malformed.mock - wildcard in REQUEST section is malformed")
 }
 
 func (s *ParseSuite) TestParsing(c *C) {
@@ -93,12 +88,12 @@ func (s *ParseSuite) TestParsing(c *C) {
 	c.Assert(rule.Service, Equals, "test1")
 	c.Assert(rule.Path, Equals, "../testdata/test1/dir1/test.mock")
 
-	c.Assert(rule.URI(), Equals, "test.domain:GET:/test?rnd=123")
-
 	c.Assert(rule.Desc, Equals, "Test mock file")
-	c.Assert(rule.Host, Equals, "test.domain")
+	c.Assert(rule.Request.Host, Equals, "test.domain")
 	c.Assert(rule.Request.Method, Equals, "GET")
-	c.Assert(rule.Request.URL, Equals, "/test?rnd=123")
+	c.Assert(rule.Request.URL, Equals, "/test?user=bob&id=123&action=delete")
+	c.Assert(rule.Request.NURL, Equals, "/test?action=delete&id=123&user=bob")
+	c.Assert(rule.Request.URI, Equals, "test.domain:GET:/test?action=delete&id=123&user=bob")
 	c.Assert(rule.Auth.User, Equals, "user1")
 	c.Assert(rule.Auth.Password, Equals, "password1")
 
@@ -200,13 +195,10 @@ func (s *ParseSuite) TestWildcardRuleParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "wildcard")
+	rule, err = Parse("../testdata", "", "", "wildcard1")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
-
-	c.Assert(rule.Wildcard, Equals, "type=1:~username")
-	c.Assert(rule.WilcardURI(), Equals, ":GET:type=1:~username")
 }
 
 func (s *ParseSuite) TestEmptyResponseRuleParsing(c *C) {
@@ -221,4 +213,41 @@ func (s *ParseSuite) TestEmptyResponseRuleParsing(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(rule.Responses, HasLen, 1)
+}
+
+func (s *ParseSuite) TestDifferentOrder(c *C) {
+	var (
+		rule *Rule
+		err  error
+	)
+
+	rule, err = Parse("../testdata", "", "", "dif_order")
+
+	c.Assert(rule, Not(IsNil))
+	c.Assert(err, IsNil)
+
+	c.Assert(rule.Name, Equals, "dif_order")
+	c.Assert(rule.FullName, Equals, "dif_order")
+	c.Assert(rule.Dir, Equals, "")
+	c.Assert(rule.Service, Equals, "")
+	c.Assert(rule.Path, Equals, "../testdata/dif_order.mock")
+
+	c.Assert(rule.Desc, Equals, "Test mock file")
+	c.Assert(rule.Request.Host, Equals, "test.domain")
+	c.Assert(rule.Request.Method, Equals, "GET")
+	c.Assert(rule.Request.URL, Equals, "/test?user=bob&id=123&action=delete")
+	c.Assert(rule.Request.NURL, Equals, "/test?action=delete&id=123&user=bob")
+	c.Assert(rule.Request.URI, Equals, "test.domain:GET:/test?action=delete&id=123&user=bob")
+	c.Assert(rule.Auth.User, Equals, "user1")
+	c.Assert(rule.Auth.Password, Equals, "password1")
+
+	c.Assert(rule.Responses[DEFAULT].Code, Equals, 200)
+	c.Assert(rule.Responses[DEFAULT].Delay, Equals, 12.3)
+	c.Assert(rule.Responses[DEFAULT].Headers["Content-Type"], Equals, "application/json")
+
+	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":123}\n")
+	c.Assert(rule.Responses["1"].File, Equals, "")
+
+	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":456}\n")
+	c.Assert(rule.Responses["2"].File, Equals, "")
 }

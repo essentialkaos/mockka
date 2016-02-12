@@ -156,9 +156,10 @@ func Init() {
 		os.Exit(1)
 	}
 
+	setupLog()
+
 	if arg.GetB(ARG_DAEMON) {
 		registerSignalHandlers()
-		setupLog()
 	}
 
 	execCommand(args)
@@ -232,8 +233,6 @@ func validateConfig() []error {
 }
 
 func setupLog() {
-	err := log.Set(knf.GetS(LOG_FILE), knf.GetM(LOG_PERMS, 0644))
-
 	levels := map[string]int{
 		"debug": log.DEBUG,
 		"info":  log.INFO,
@@ -244,9 +243,13 @@ func setupLog() {
 
 	log.MinLevel(levels[strings.ToLower(knf.GetS(LOG_LEVEL, "debug"))])
 
-	if err != nil {
-		fmt.Printf("Can't setup logger: %s\n", err.Error())
-		os.Exit(1)
+	if arg.GetB(ARG_DAEMON) {
+		err := log.Set(knf.GetS(LOG_FILE), knf.GetM(LOG_PERMS, 0644))
+
+		if err != nil {
+			fmt.Printf("Can't setup logger: %s\n", err.Error())
+			os.Exit(1)
+		}
 	}
 }
 
@@ -307,6 +310,9 @@ func makeMock(args []string) {
 
 func listMocks(args []string) {
 	var service = ""
+
+	// Suppress observer logging
+	log.Set(os.DevNull, 0)
 
 	if len(args) != 0 {
 		service = args[0]

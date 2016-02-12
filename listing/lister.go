@@ -99,7 +99,7 @@ func showRuleInfo(rule *rules.Rule) {
 		fmtc.Printf("\n  {*}%s{!} - %s\n", rule.FullName+".mock", rule.Desc)
 	}
 
-	host := rule.Host
+	host := rule.Request.Host
 
 	if host == "" {
 		if knf.GetS(LISTING_HOST) != "" {
