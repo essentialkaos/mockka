@@ -104,17 +104,19 @@ func Init() {
 
 	file := findFile(args[0])
 
+	for {
+		if fsutil.CheckPerms("FRS", file) {
+			break
+		}
+
+		time.Sleep(time.Millisecond * 500)
+	}
+
 	readFile(file)
 }
 
 // readFile starts file reading loop
 func readFile(file string) {
-	for {
-		if fsutil.CheckPerms("FR", file) {
-			break
-		}
-	}
-
 	fd, err := os.OpenFile(file, os.O_RDONLY|os.O_APPEND, 0644)
 
 	if err != nil {
@@ -229,16 +231,12 @@ func findFile(file string) string {
 
 	configPath := fsutil.ProperPath("FRS", confPaths)
 
-	fmtc.Println(configPath)
-
 	if configPath == "" {
 		return file
 	}
 
 	config, err := knf.Read(configPath)
 	logDir := config.GetS("main:log-dir")
-
-	fmtc.Println(logDir)
 
 	if err != nil || logDir == "" {
 		return file

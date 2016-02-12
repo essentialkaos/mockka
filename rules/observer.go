@@ -24,6 +24,7 @@ import (
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
+// RuleMap is map key -> rule
 type RuleMap map[string]*Rule
 
 type Observer struct {
@@ -42,7 +43,7 @@ type Observer struct {
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-// Create new observer struct
+// NewObserver create new observer struct
 func NewObserver(ruleDir string) *Observer {
 	return &Observer{
 		ruleDir: ruleDir,
@@ -251,7 +252,7 @@ RULELOOP:
 
 			if urlutil.EqualPatterns(r.Request.NURL, rule.Request.NURL) {
 				if obs.errMap[rule.Path] != true {
-					log.Error("Rule intersection: rule %s and rule %s have same result urls", rule.PrettyPath, r.PrettyPath)
+					log.Error("Rule intersection: rule %s and rule %s have same result urls", r.PrettyPath, rule.PrettyPath)
 					obs.errMap[rule.Path] = true
 					ok = false
 				}
