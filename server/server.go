@@ -306,8 +306,20 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, re
 
 	record.Method = req.Method
 	record.Request = req.RequestURI
-	record.StatusCode = resp.Code
-	record.StatusDesc = httputil.GetDescByCode(resp.Code)
+
+	record.StatusCode = 200
+
+	if resp.Code == 0 {
+		defResp, ok := rule.Responses[rules.DEFAULT]
+
+		if ok && defResp.Code != 0 {
+			record.StatusCode = defResp.Code
+		}
+	} else {
+		record.StatusCode = resp.Code
+	}
+
+	record.StatusDesc = httputil.GetDescByCode(record.StatusCode)
 
 	if len(req.Header) != 0 {
 		record.RequestHeaders = getSortedValues(req.Header)

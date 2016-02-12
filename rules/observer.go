@@ -297,7 +297,7 @@ func findRule(uriMap, wcMap RuleMap, r *http.Request, autoHead bool) *Rule {
 	host := httputil.GetRequestHost(r)
 	uri := urlutil.SortURLParams(r.URL)
 
-	log.Debug("Request: (%s) %s", host, uri)
+	log.Debug("Request: %s%s", host, uri)
 
 	result = getRule(uriMap, host, r.Method, uri)
 

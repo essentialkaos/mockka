@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"pkg.re/essentialkaos/ek.v1/kv"
@@ -95,13 +96,19 @@ func (lr *LogRecord) Write(fd *os.File) error {
 	if lr.RequestBody != "" {
 		fmt.Fprintf(fd, "\n+ REQUEST BODY\n\n")
 		fmt.Fprintf(fd, lr.RequestBody)
-		fmt.Fprintln(fd, "")
+
+		if !strings.HasSuffix(lr.RequestBody, "\n") {
+			fmt.Fprintln(fd, "")
+		}
 	}
 
 	if lr.ResponseBody != "" {
 		fmt.Fprintf(fd, "\n+ RESPONSE BODY\n\n")
 		fmt.Fprintf(fd, lr.ResponseBody)
-		fmt.Fprintln(fd, "")
+
+		if !strings.HasSuffix(lr.ResponseBody, "\n") {
+			fmt.Fprintln(fd, "")
+		}
 	}
 
 	if len(lr.ResponseHeaders) != 0 {
