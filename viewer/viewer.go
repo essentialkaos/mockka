@@ -32,9 +32,11 @@ const (
 )
 
 const (
-	ARG_NO_COLOR = "nc:no-color"
-	ARG_HELP     = "h:help"
-	ARG_VER      = "v:version"
+	ARG_NO_COLOR  = "nc:no-color"
+	ARG_DATE_FROM = "f:from"
+	ARG_DATE_TO   = "t:to"
+	ARG_HELP      = "h:help"
+	ARG_VER       = "v:version"
 )
 
 const (
@@ -49,9 +51,11 @@ const (
 
 // argMap is struct with command-line arguments
 var argMap = arg.Map{
-	ARG_NO_COLOR: &arg.V{Type: arg.BOOL},
-	ARG_HELP:     &arg.V{Type: arg.BOOL, Alias: "u:usage"},
-	ARG_VER:      &arg.V{Type: arg.BOOL, Alias: "ver"},
+	ARG_NO_COLOR:  &arg.V{Type: arg.BOOL},
+	ARG_DATE_FROM: &arg.V{Alias: "s:start"},
+	ARG_DATE_TO:   &arg.V{Alias: "e:end"},
+	ARG_HELP:      &arg.V{Type: arg.BOOL, Alias: "u:usage"},
+	ARG_VER:       &arg.V{Type: arg.BOOL, Alias: "ver"},
 }
 
 // headers is slice of sections headers
@@ -71,6 +75,9 @@ var confPaths = []string{
 	"mockka.conf",
 }
 
+// separatorTimeLayout is time layout used for parsing date
+var separatorTimeLayout = "2006/01/02 15:04:05"
+
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func Init() {
@@ -79,10 +86,10 @@ func Init() {
 	args, errs := arg.Parse(argMap)
 
 	if len(errs) != 0 {
-		fmtc.Println("{r}Errors while argument parsing:{!}")
+		printError("Errors while argument parsing:")
 
 		for _, err := range errs {
-			fmtc.Printf("  {r}%v{!}\n", err)
+			printError("  %v", err)
 		}
 
 		os.Exit(1)
@@ -112,15 +119,19 @@ func Init() {
 		time.Sleep(time.Millisecond * 500)
 	}
 
-	readFile(file)
+	if arg.Has(ARG_DATE_FROM) || arg.Has(ARG_DATE_TO) {
+		filterFile(file)
+	} else {
+		readFile(file)
+	}
 }
 
 // readFile starts file reading loop
 func readFile(file string) {
-	fd, err := os.OpenFile(file, os.O_RDONLY|os.O_APPEND, 0644)
+	fd, err := os.OpenFile(file, os.O_RDONLY, 0644)
 
 	if err != nil {
-		fmtc.Printf("{r}Can't open file %s: %v{!}\n", file, err)
+		printError("Can't open file %s: %v", file, err)
 		os.Exit(1)
 	}
 
@@ -129,7 +140,7 @@ func readFile(file string) {
 	stat, err := fd.Stat()
 
 	if err != nil {
-		fmtc.Printf("{r}Can't read file stats %s: %v{!}\n", file, err)
+		printError("Can't read file stats %s: %v", file, err)
 		os.Exit(1)
 	}
 
@@ -164,6 +175,82 @@ func readFile(file string) {
 		}
 
 		rt := getLineType(line)
+
+		if rt == TYPE_HEADER {
+			currentSection = extractHeaderName(line)
+			renderLine(line, rt)
+			continue
+		}
+
+		if sliceutil.Contains(dataSections, currentSection) {
+			fmtc.Println(line)
+			continue
+		}
+
+		renderLine(line, rt)
+	}
+}
+
+// filterFile read file and show records only between given time range
+func filterFile(file string) {
+	fd, err := os.OpenFile(file, os.O_RDONLY, 0644)
+
+	if err != nil {
+		printError("Can't open file %s: %v", file, err)
+		os.Exit(1)
+	}
+
+	defer fd.Close()
+
+	reader := bufio.NewReader(fd)
+
+	var showSection = false
+	var currentSection = ""
+	var dataSections = []string{"REQUEST BODY", "RESPONSE BODY"}
+
+	fromDate := time.Date(2016, 1, 1, 0, 0, 0, 0, time.Local)
+	toDate := time.Now()
+
+	if arg.Has(ARG_DATE_FROM) {
+		fromDate, err = parseRangeDate(arg.GetS(ARG_DATE_FROM))
+
+		if err != nil {
+			printError("Can't parse range start: %v", err)
+			os.Exit(1)
+		}
+	}
+
+	if arg.Has(ARG_DATE_TO) {
+		toDate, err = parseRangeDate(arg.GetS(ARG_DATE_TO))
+
+		if err != nil {
+			printError("Can't parse range end: %v", err)
+			os.Exit(1)
+		}
+	}
+
+	for {
+		line, err := reader.ReadString('\n')
+
+		if err != nil {
+			break
+		}
+
+		line = strings.TrimRight(line, "\n")
+		line = strings.TrimRight(line, "\r")
+
+		rt := getLineType(line)
+
+		if rt == TYPE_SEPARATOR {
+			recDateStr := extractTimeFromSeparator(line)
+			recDate, _ := time.Parse(separatorTimeLayout, recDateStr)
+
+			showSection = recDate.Unix() >= fromDate.Unix() && recDate.Unix() <= toDate.Unix()
+		}
+
+		if !showSection {
+			continue
+		}
 
 		if rt == TYPE_HEADER {
 			currentSection = extractHeaderName(line)
@@ -253,18 +340,100 @@ func findFile(file string) string {
 	return file
 }
 
+// extractTimeFromSeparator return string with date from separator
+func extractTimeFromSeparator(line string) string {
+	if line == "" || len(line) != 88 {
+		return ""
+	}
+
+	return line[3:22]
+}
+
+// parseRangeDate parse different formats of time strings
+// and return time struct
+func parseRangeDate(date string) (time.Time, error) {
+	var (
+		dateStr string
+		timeStr string
+		layout  string
+	)
+
+	now := time.Now()
+
+	var (
+		year  = now.Year()
+		month = now.Month()
+		day   = now.Day()
+	)
+
+	if strings.Contains(date, " ") {
+		dateSlice := strings.Split(date, " ")
+		dateStr, timeStr = dateSlice[0], dateSlice[1]
+	} else {
+		if strings.Contains(date, "/") {
+			dateStr = date
+		} else {
+			timeStr = date
+		}
+	}
+
+	if dateStr != "" {
+		switch strings.Count(dateStr, "/") {
+		case 2:
+			layout += "2006/01/02"
+		case 1:
+			layout += "2006/01"
+		}
+	} else {
+		date = fmtc.Sprintf("%d/%02d/%d %s", year, month, day, date)
+		layout = "2006/01/02"
+	}
+
+	if timeStr != "" {
+		layout += " "
+
+		switch strings.Count(timeStr, ":") {
+		case 2:
+			layout += "15:04:05"
+		case 1:
+			layout += "15:04"
+		case 0:
+			layout += "15"
+		}
+	}
+
+	return time.Parse(layout, date)
+}
+
+// printError print error message
+func printError(f string, a ...interface{}) {
+	fmtc.Printf("{r}"+f+"{!}\n", a...)
+}
+
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func showUsage() {
 	info := usage.NewInfo("", "log-file")
 
 	info.AddOption(ARG_NO_COLOR, "Disable colors in output")
+	info.AddOption(ARG_DATE_FROM, "Time range start", "date")
+	info.AddOption(ARG_DATE_TO, "Time range end", "date")
 	info.AddOption(ARG_HELP, "Show this help message")
 	info.AddOption(ARG_VER, "Show version")
 
 	info.AddExample("/path/to/file.log", "Read log file")
 	info.AddExample("file.log", "Try to find file.log in mockka logs directory")
 	info.AddExample("file", "Try to find file.log in mockka logs directory")
+
+	info.AddExample(
+		"-f 2016/01/02 -t 2016/01/05 /path/to/file.log",
+		"Read file and show only records between 2016/01/02 and 2016/01/05",
+	)
+
+	info.AddExample(
+		"-f \"2016/01/02 12:00\" -t \"2016/01/02 15:00\" /path/to/file.log",
+		"Read file and show only records between 2016/01/02 12:00 and 2016/01/02 15:00",
+	)
 
 	info.Render()
 }
