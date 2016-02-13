@@ -431,8 +431,8 @@ func showUsage() {
 	)
 
 	info.AddExample(
-		"-f \"2016/01/02 12:00\" -t \"2016/01/02 15:00\" /path/to/file.log",
-		"Read file and show only records between 2016/01/02 12:00 and 2016/01/02 15:00",
+		"-f \"2016/01/02 12:00\" /path/to/file.log",
+		"Read file and show only records between 2016/01/02 12:00 and current moment",
 	)
 
 	info.Render()

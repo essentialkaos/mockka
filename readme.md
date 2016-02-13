@@ -177,6 +177,48 @@ Content-Type:application/json
 
 ````
 
+#### Viewer
+
+For viewing mockka logs we provide simple tool named `mockka-viewer`.
+
+Some features:
+
+* Syntax higlighting
+* Filtering records by time range
+* Log file search
+
+Usage:
+
+````
+Usage: mockka-viewer <options> log-file
+
+Options:
+
+  --no-color, -nc     Disable colors in output
+  --from, -f date     Time range start
+  --to, -t date       Time range end
+  --help, -h          Show this help message
+  --version, -v       Show version
+
+Examples:
+
+  mockka-viewer /path/to/file.log
+  Read log file
+
+  mockka-viewer file.log
+  Try to find file.log in mockka logs directory
+
+  mockka-viewer file
+  Try to find file.log in mockka logs directory
+
+  mockka-viewer -f 2016/01/02 -t 2016/01/05 /path/to/file.log
+  Read file and show only records between 2016/01/02 and 2016/01/05
+
+  mockka-viewer -f "2016/01/02 12:00" /path/to/file.log
+  Read file and show only records between 2016/01/02 12:00 and current moment
+
+````
+
 #### Build Status
 
 | Repository | Status |
