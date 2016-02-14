@@ -23,6 +23,7 @@ import (
 	"pkg.re/essentialkaos/ek.v1/knf"
 	"pkg.re/essentialkaos/ek.v1/kv"
 	"pkg.re/essentialkaos/ek.v1/log"
+	"pkg.re/essentialkaos/ek.v1/path"
 	"pkg.re/essentialkaos/ek.v1/rand"
 	"pkg.re/essentialkaos/ek.v1/req"
 	"pkg.re/essentialkaos/ek.v1/system"
@@ -44,7 +45,8 @@ const (
 const ERROR_HTTP_CODE = 599
 
 const (
-	MAIN_LOG_DIR              = "main:log-dir"
+	DATA_LOG_DIR              = "data:log-dir"
+	DATA_LOG_TYPE             = "data:log-type"
 	HTTP_IP                   = "http:ip"
 	HTTP_PORT                 = "http:port"
 	HTTP_READ_TIMEOUT         = "http:read-timeout"
@@ -55,7 +57,8 @@ const (
 	ACCESS_GROUP              = "access:group"
 	ACCESS_MOCK_PERMS         = "access:mock-perms"
 	ACCESS_LOG_PERMS          = "access:log-perms"
-	ACCESS_DIR_PERMS          = "access:dir-perms"
+	ACCESS_MOCK_DIR_PERMS     = "access:mock-dir-perms"
+	ACCESS_LOG_DIR_PERMS      = "access:log-dir-perms"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -222,19 +225,16 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 // logRequestInfo create log file and write record with info about request and reponse
 // into this file
 func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, responseContent string, bodyData []byte) {
-	filePath := knf.GetS(MAIN_LOG_DIR) + "/" + rule.Service + ".log"
-	requredPermChange := !fsutil.IsExist(filePath)
-
-	fd, err := os.OpenFile(filePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	logPath, err := getLogStore(rule)
 
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
-	defer fd.Close()
+	requredPermChange := !fsutil.IsExist(logPath)
 
-	err = makeLogRecord(req, rule, resp, responseContent, bodyData).Write(fd)
+	err = makeLogRecord(req, rule, resp, responseContent, bodyData).Write(logPath)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -242,7 +242,7 @@ func logRequestInfo(req *http.Request, rule *rules.Rule, resp *rules.Response, r
 	}
 
 	if requredPermChange {
-		updatePerms(filePath)
+		updatePerms(logPath, knf.GetM(ACCESS_LOG_PERMS, 0644))
 	}
 }
 
@@ -362,10 +362,39 @@ func makeLogRecord(req *http.Request, rule *rules.Rule, resp *rules.Response, re
 	return record
 }
 
+// getLogStore create directory for log file and return full path to log
+func getLogStore(rule *rules.Rule) (string, error) {
+	if knf.GetS(DATA_LOG_TYPE, "united") == "united" {
+		return path.Join(knf.GetS(DATA_LOG_DIR), rule.Service+".log"), nil
+	}
+
+	logDir := path.Join(rule.Service, rule.Dir)
+	logDirSlice := strings.Split(logDir, "/")
+
+	for i := 1; i < len(logDirSlice)+1; i++ {
+		pathPart := path.Join(logDirSlice[0:i]...)
+		logDirPath := path.Join(knf.GetS(DATA_LOG_DIR), pathPart)
+
+		if fsutil.IsExist(logDirPath) {
+			continue
+		}
+
+		err := os.Mkdir(logDirPath, 0775)
+
+		if err != nil {
+			return "", err
+		}
+
+		updatePerms(logDirPath, knf.GetM(ACCESS_LOG_DIR_PERMS, 0775))
+	}
+
+	return path.Join(knf.GetS(DATA_LOG_DIR), logDir, rule.Name+".log"), nil
+}
+
 // updatePerms change permissions for log file/dir
-func updatePerms(logPath string) {
+func updatePerms(path string, perms os.FileMode) {
 	if knf.HasProp(ACCESS_USER) || knf.HasProp(ACCESS_GROUP) {
-		logOwnerUID, logOwnerGID, _ := fsutil.GetOwner(logPath)
+		logOwnerUID, logOwnerGID, _ := fsutil.GetOwner(path)
 
 		if knf.HasProp(ACCESS_USER) {
 			userInfo, err := system.LookupUser(knf.GetS(ACCESS_USER))
@@ -383,10 +412,10 @@ func updatePerms(logPath string) {
 			}
 		}
 
-		os.Chown(logPath, logOwnerUID, logOwnerGID)
+		os.Chown(path, logOwnerUID, logOwnerGID)
 	}
 
-	os.Chmod(logPath, knf.GetM(ACCESS_LOG_PERMS))
+	os.Chmod(path, perms)
 }
 
 // getSortedRespHeaders return sorted response headers

@@ -60,9 +60,10 @@ const (
 
 const (
 	MAIN_DIR                  = "main:dir"
-	MAIN_RULE_DIR             = "main:rule-dir"
-	MAIN_LOG_DIR              = "main:log-dir"
-	MAIN_CHECK_DELAY          = "main:check-delay"
+	DATA_RULE_DIR             = "data:rule-dir"
+	DATA_LOG_DIR              = "data:log-dir"
+	DATA_LOG_TYPE             = "data:log-type"
+	DATA_CHECK_DELAY          = "data:check-delay"
 	HTTP_IP                   = "http:ip"
 	HTTP_PORT                 = "http:port"
 	HTTP_READ_TIMEOUT         = "http:read-timeout"
@@ -78,7 +79,8 @@ const (
 	ACCESS_GROUP              = "access:group"
 	ACCESS_MOCK_PERMS         = "access:mock-perms"
 	ACCESS_LOG_PERMS          = "access:log-perms"
-	ACCESS_DIR_PERMS          = "access:dir-perms"
+	ACCESS_MOCK_DIR_PERMS     = "access:mock-dir-perms"
+	ACCESS_LOG_DIR_PERMS      = "access:log-dir-perms"
 	LISTING_SCHEME            = "listing:scheme"
 	LISTING_HOST              = "listing:host"
 	LISTING_PORT              = "listing:port"
@@ -202,22 +204,23 @@ func validateConfig() []error {
 	}
 
 	return knf.Validate([]*knf.Validator{
-		&knf.Validator{MAIN_RULE_DIR, knf.Empty, nil},
-		&knf.Validator{MAIN_LOG_DIR, knf.Empty, nil},
-		&knf.Validator{MAIN_CHECK_DELAY, knf.Empty, nil},
+		&knf.Validator{DATA_RULE_DIR, knf.Empty, nil},
+		&knf.Validator{DATA_LOG_DIR, knf.Empty, nil},
+		&knf.Validator{DATA_CHECK_DELAY, knf.Empty, nil},
 		&knf.Validator{HTTP_PORT, knf.Empty, nil},
 		&knf.Validator{HTTP_READ_TIMEOUT, knf.Empty, nil},
 		&knf.Validator{HTTP_WRITE_TIMEOUT, knf.Empty, nil},
 		&knf.Validator{HTTP_MAX_HEADER_SIZE, knf.Empty, nil},
 		&knf.Validator{ACCESS_MOCK_PERMS, knf.Empty, nil},
 		&knf.Validator{ACCESS_LOG_PERMS, knf.Empty, nil},
-		&knf.Validator{ACCESS_DIR_PERMS, knf.Empty, nil},
+		&knf.Validator{ACCESS_MOCK_DIR_PERMS, knf.Empty, nil},
+		&knf.Validator{ACCESS_LOG_DIR_PERMS, knf.Empty, nil},
 
-		&knf.Validator{MAIN_RULE_DIR, permsChecker, "DRX"},
-		&knf.Validator{MAIN_LOG_DIR, permsChecker, "DRX"},
+		&knf.Validator{DATA_RULE_DIR, permsChecker, "DRX"},
+		&knf.Validator{DATA_LOG_DIR, permsChecker, "DRX"},
 
-		&knf.Validator{MAIN_CHECK_DELAY, knf.Less, MIN_CHECK_DELAY},
-		&knf.Validator{MAIN_CHECK_DELAY, knf.Greater, MAX_CHECK_DELAY},
+		&knf.Validator{DATA_CHECK_DELAY, knf.Less, MIN_CHECK_DELAY},
+		&knf.Validator{DATA_CHECK_DELAY, knf.Greater, MAX_CHECK_DELAY},
 		&knf.Validator{HTTP_PORT, knf.Less, MIN_PORT},
 		&knf.Validator{HTTP_PORT, knf.Greater, MAX_PORT},
 		&knf.Validator{HTTP_READ_TIMEOUT, knf.Less, MIN_READ_TIMEOUT},
@@ -281,9 +284,9 @@ func registerSignalHandlers() {
 }
 
 func runServer() {
-	observer := rules.NewObserver(knf.GetS(MAIN_RULE_DIR))
+	observer := rules.NewObserver(knf.GetS(DATA_RULE_DIR))
 	observer.AutoHead = knf.GetB(PROCESSING_AUTO_HEAD)
-	observer.Start(knf.GetI(MAIN_CHECK_DELAY))
+	observer.Start(knf.GetI(DATA_CHECK_DELAY))
 
 	err := server.Start(observer, APP+"/"+VER, arg.GetS(ARG_PORT))
 
@@ -318,7 +321,7 @@ func listMocks(args []string) {
 		service = args[0]
 	}
 
-	observer := rules.NewObserver(knf.GetS(MAIN_RULE_DIR))
+	observer := rules.NewObserver(knf.GetS(DATA_RULE_DIR))
 	err := listing.List(observer, service)
 
 	if err != nil {

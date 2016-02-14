@@ -41,19 +41,19 @@ Content-Type:application/json
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 const (
-	MAIN_RULE_DIR     = "main:rule-dir"
-	ACCESS_USER       = "access:user"
-	ACCESS_GROUP      = "access:group"
-	ACCESS_MOCK_PERMS = "access:mock-perms"
-	ACCESS_DIR_PERMS  = "access:dir-perms"
-	TEMPLATE_PATH     = "template:path"
+	DATA_RULE_DIR         = "data:rule-dir"
+	ACCESS_USER           = "access:user"
+	ACCESS_GROUP          = "access:group"
+	ACCESS_MOCK_PERMS     = "access:mock-perms"
+	ACCESS_MOCK_DIR_PERMS = "access:mock-dir-perms"
+	TEMPLATE_PATH         = "template:path"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func Make(name string) error {
-	if !fsutil.IsWritable(knf.GetS(MAIN_RULE_DIR)) {
-		return fmt.Errorf("Directory %s must be writable.", knf.GetS(MAIN_RULE_DIR))
+	if !fsutil.IsWritable(knf.GetS(DATA_RULE_DIR)) {
+		return fmt.Errorf("Directory %s must be writable.", knf.GetS(DATA_RULE_DIR))
 	}
 
 	if name == "" {
@@ -65,7 +65,7 @@ func Make(name string) error {
 	}
 
 	template := knf.GetS(TEMPLATE_PATH)
-	ruleDir := knf.GetS(MAIN_RULE_DIR)
+	ruleDir := knf.GetS(DATA_RULE_DIR)
 	dirName := path.Dir(name)
 	fullPath := ruleDir + "/" + name
 
@@ -91,7 +91,7 @@ func Make(name string) error {
 }
 
 func createMock(content, dirName, fullPath string) error {
-	serviceDir := knf.GetS(MAIN_RULE_DIR) + "/" + dirName
+	serviceDir := knf.GetS(DATA_RULE_DIR) + "/" + dirName
 
 	err := os.MkdirAll(serviceDir, 0755)
 
@@ -141,6 +141,6 @@ func updatePerms(dirPath, mockPath string) {
 		os.Chown(mockPath, mockOwnerUID, mockOwnerGID)
 	}
 
-	os.Chmod(dirPath, knf.GetM(ACCESS_DIR_PERMS))
+	os.Chmod(dirPath, knf.GetM(ACCESS_MOCK_DIR_PERMS))
 	os.Chmod(mockPath, knf.GetM(ACCESS_MOCK_PERMS))
 }

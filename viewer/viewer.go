@@ -323,7 +323,7 @@ func findFile(file string) string {
 	}
 
 	config, err := knf.Read(configPath)
-	logDir := config.GetS("main:log-dir")
+	logDir := config.GetS("data:log-dir")
 
 	if err != nil || logDir == "" {
 		return file

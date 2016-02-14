@@ -8,7 +8,6 @@ package server
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -41,10 +40,14 @@ type LogRecord struct {
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 // Write write log record to file
-func (lr *LogRecord) Write(fd *os.File) error {
-	if fd == nil {
-		return errors.New("File descriptor can't be nil")
+func (lr *LogRecord) Write(file string) error {
+	fd, err := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+
+	if err != nil {
+		return err
 	}
+
+	defer fd.Close()
 
 	date := timeutil.Format(lr.Date, "%Y/%m/%d %T")
 
