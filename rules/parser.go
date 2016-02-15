@@ -81,7 +81,7 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 	rule.Name = mock
 	rule.Service = service
 	rule.FullName = path.Join(dir, mock)
-	rule.PrettyPath = rule.Service + "/" + rule.FullName
+	rule.PrettyPath = path.Join(rule.Service, rule.FullName)
 	rule.Path = path.Join(ruleDir, service, dir, mock+".mock")
 	rule.Request = &Request{}
 
@@ -102,9 +102,9 @@ func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, er
 					resp.Headers["Content-Type"] = guessContentType(source)
 
 					if service != "" {
-						resp.File = ruleDir + "/" + service + "/" + source
+						resp.File = path.Join(ruleDir, service, source)
 					} else {
-						resp.File = ruleDir + "/" + source
+						resp.File = path.Join(ruleDir, source)
 					}
 				}
 			}

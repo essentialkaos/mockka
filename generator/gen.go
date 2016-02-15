@@ -12,17 +12,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/knf"
+	"pkg.re/essentialkaos/ek.v1/path"
 	"pkg.re/essentialkaos/ek.v1/system"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-const MockTemplate = `@DESCRIPTION
+const MOCK_TEMPLATE = `@DESCRIPTION
 # Enter simple description for this mock
 
 @REQUEST
@@ -67,7 +67,7 @@ func Make(name string) error {
 	template := knf.GetS(TEMPLATE_PATH)
 	ruleDir := knf.GetS(DATA_RULE_DIR)
 	dirName := path.Dir(name)
-	fullPath := ruleDir + "/" + name
+	fullPath := path.Join(ruleDir, name)
 
 	if !strings.Contains(fullPath, ".mock") {
 		fullPath += ".mock"
@@ -78,7 +78,7 @@ func Make(name string) error {
 	}
 
 	if template == "" || !fsutil.CheckPerms("FRS", template) {
-		return createMock(MockTemplate, dirName, fullPath)
+		return createMock(MOCK_TEMPLATE, dirName, fullPath)
 	}
 
 	templData, err := ioutil.ReadFile(template)
@@ -91,7 +91,7 @@ func Make(name string) error {
 }
 
 func createMock(content, dirName, fullPath string) error {
-	serviceDir := knf.GetS(DATA_RULE_DIR) + "/" + dirName
+	serviceDir := path.Join(knf.GetS(DATA_RULE_DIR), dirName)
 
 	err := os.MkdirAll(serviceDir, 0755)
 

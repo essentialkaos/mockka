@@ -18,6 +18,7 @@ import (
 	"pkg.re/essentialkaos/ek.v1/fmtc"
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/knf"
+	"pkg.re/essentialkaos/ek.v1/path"
 	"pkg.re/essentialkaos/ek.v1/sliceutil"
 	"pkg.re/essentialkaos/ek.v1/strutil"
 	"pkg.re/essentialkaos/ek.v1/usage"
@@ -333,8 +334,8 @@ func findFile(file string) string {
 		file += ".log"
 	}
 
-	if fsutil.CheckPerms("FRS", logDir+"/"+file) {
-		return logDir + "/" + file
+	if fsutil.CheckPerms("FRS", path.Join(logDir, file)) {
+		return path.Join(logDir, file)
 	}
 
 	return file
