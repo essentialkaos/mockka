@@ -1,10 +1,10 @@
 ########################################################################################
 
-DEST_DIR ?= /usr/bin
+DESTDIR ?= /usr/bin
 
 ########################################################################################
 
-.PHONY = all clean install uninstall deps
+.PHONY = all clean install uninstall deps test
 
 ########################################################################################
 
@@ -22,14 +22,18 @@ mockka:
 mockka-viewer:
 	go build mockka-viewer.go
 
+test:
+	go test ./rules 
+	go test ./urlutil
+
 install:
-	mkdir -p $(DEST_DIR)
-	cp mockka $(DEST_DIR)/
-	cp mockka-viewer $(DEST_DIR)/
+	mkdir -p $(DESTDIR)
+	cp mockka $(DESTDIR)/
+	cp mockka-viewer $(DESTDIR)/
 
 uninstall:
-	rm -f $(DEST_DIR)/mockka
-	rm -f $(DEST_DIR)/mockka-viewer
+	rm -f $(DESTDIR)/mockka
+	rm -f $(DESTDIR)/mockka-viewer
 
 clean:
 	rm -f mockka

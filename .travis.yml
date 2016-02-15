@@ -14,5 +14,5 @@ before_install:
   - make deps
 
 script:
-  - go test ./rules ./urlutil
+  - make test
   - make all
