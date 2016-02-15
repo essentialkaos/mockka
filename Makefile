@@ -1,6 +1,7 @@
 ########################################################################################
 
-DESTDIR ?= /usr/bin
+DESTDIR?=
+PREFIX?=/usr
 
 ########################################################################################
 
@@ -27,13 +28,13 @@ test:
 	go test ./urlutil
 
 install:
-	mkdir -p $(DESTDIR)
-	cp mockka $(DESTDIR)/
-	cp mockka-viewer $(DESTDIR)/
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	cp mockka $(DESTDIR)$(PREFIX)/bin/
+	cp mockka-viewer $(DESTDIR)$(PREFIX)/bin/
 
 uninstall:
-	rm -f $(DESTDIR)/mockka
-	rm -f $(DESTDIR)/mockka-viewer
+	rm -f $(DESTDIR)$(PREFIX)/bin/mockka
+	rm -f $(DESTDIR)$(PREFIX)/bin/mockka-viewer
 
 clean:
 	rm -f mockka
