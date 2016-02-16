@@ -144,6 +144,7 @@ func Init() {
 		return
 	}
 
+	// Slice with valid config paths
 	confPaths := []string{
 		arg.GetS(ARG_CONFIG),
 		"/etc/mockka.conf",
