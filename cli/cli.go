@@ -70,6 +70,7 @@ const (
 	HTTP_READ_TIMEOUT         = "http:read-timeout"
 	HTTP_WRITE_TIMEOUT        = "http:write-timeout"
 	HTTP_MAX_HEADER_SIZE      = "http:max-header-size"
+	HTTP_MAX_DELAY            = "http:max-delay"
 	PROCESSING_AUTO_HEAD      = "processing:auto-head"
 	PROCESSING_ALLOW_PROXYING = "processing:allow-proxying"
 	LOG_DIR                   = "log:dir"
@@ -143,7 +144,14 @@ func Init() {
 		return
 	}
 
-	err = knf.Global(arg.GetS(ARG_CONFIG))
+	confPaths := []string{
+		arg.GetS(ARG_CONFIG),
+		"/etc/mockka.conf",
+		"~/mockka.conf",
+		"mockka.conf",
+	}
+
+	err = knf.Global(fsutil.ProperPath("FRS", confPaths))
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -422,7 +430,7 @@ func showAbout() {
 	about := &usage.About{
 		App:     APP,
 		Version: VER,
-		Release: ".beta1",
+		Release: ".rc1",
 		Desc:    DESC,
 		Year:    2009,
 		Owner:   "ESSENTIAL KAOS",
