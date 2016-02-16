@@ -8,7 +8,6 @@ package rules
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 import (
-	"io/ioutil"
 	"net/http"
 	"sort"
 	"strings"
@@ -37,7 +36,7 @@ type Observer struct {
 	errMap  map[string]bool    // full name -> has error
 	srvMap  map[string]bool    // service name -> true
 
-	ruleDir string
+	ruleDir string // dir with all mock files
 	works   bool
 }
 
@@ -121,24 +120,24 @@ func (obs *Observer) Load() bool {
 		}
 	}
 
-	dl, err := ioutil.ReadDir(obs.ruleDir)
-
-	if err != nil {
-		log.Error("Can't list directory with rules (%s)", obs.ruleDir)
+	if !fsutil.CheckPerms("DRX", obs.ruleDir) {
+		log.Error("Can't read directory with rules (%s)", obs.ruleDir)
+		return false
 	}
 
-	for _, di := range dl {
+	rules := fsutil.ListAllFiles(
+		obs.ruleDir, true,
+		&fsutil.ListingFilter{
+			MatchPatterns: []string{"*.mock"},
+		},
+	)
 
-		// Ignore all files in rules directory
-		if !di.IsDir() {
-			continue
-		}
+	if len(rules) == 0 {
+		return ok
+	}
 
-		service := di.Name()
-
-		if !obs.checkDir(service, "") && ok {
-			ok = false
-		}
+	if !obs.checkRules(rules) {
+		ok = false
 	}
 
 	return ok
@@ -195,46 +194,27 @@ func (obs *Observer) GetServiceRulesNames(service string) []string {
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
-func (obs *Observer) checkDir(service, dir string) bool {
+func (obs *Observer) checkRules(rules []string) bool {
 	var ok = true
 
-	rl, err := ioutil.ReadDir(path.Join(obs.ruleDir, service, dir))
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
 RULELOOP:
-	for _, ri := range rl {
-		filename := ri.Name()
+	for _, rulePath := range rules {
 
-		if ri.IsDir() && !path.IsDotfile(filename) {
-			if !obs.checkDir(service, path.Join(dir, filename)) {
-				ok = false
-			}
+		service, mockfile, dir := ParsePath(rulePath)
+		fullPath := path.Join(obs.ruleDir, rulePath)
+		mockname := strings.TrimRight(mockfile, ".mock")
 
+		if obs.pathMap[fullPath] != nil {
 			continue
 		}
 
-		// Ignore all files without .mock extension (backup files, temporary files)
-		if path.Ext(filename) != ".mock" {
-			continue
-		}
-
-		fullpath := path.Join(obs.ruleDir, service, dir, filename)
-
-		// Skip rule if it already successfully parsed
-		if obs.pathMap[fullpath] != nil {
-			continue
-		}
-
-		rule, err := Parse(obs.ruleDir, service, dir, strings.Replace(filename, ".mock", "", -1))
+		rule, err := Parse(obs.ruleDir, service, dir, mockname)
 
 		if err != nil {
-			if obs.errMap[rule.Path] != true {
-				log.Error("Can't parse rule %s: %v", rule.PrettyPath, err)
-				obs.errMap[rule.Path] = true
+
+			if obs.errMap[fullPath] != true {
+				log.Error("Can't parse rule %s: %v", path.Join(service, dir, mockname), err)
+				obs.errMap[fullPath] = true
 				ok = false
 			}
 

@@ -88,7 +88,7 @@ func Check(target string) error {
 		return errors.New("You must difine mock file or service name")
 	}
 
-	targetService, targetMock, targetDir := parseTarget(target)
+	targetService, targetMock, targetDir := rules.ParsePath(target)
 
 	serviceDir := path.Join(knf.GetS(DATA_RULE_DIR), targetService)
 
@@ -96,10 +96,10 @@ func Check(target string) error {
 		return fmtc.Errorf("Service %s is not exist", targetService)
 	}
 
-	var rules []*RuleInfo
+	var ruleInfoSlice []*RuleInfo
 
 	if targetMock != "" {
-		rules = append(rules, &RuleInfo{targetService, targetMock, targetDir})
+		ruleInfoSlice = append(ruleInfoSlice, &RuleInfo{targetService, targetMock, targetDir})
 	} else {
 		mockFiles := fsutil.ListAllFiles(serviceDir, true,
 			&fsutil.ListingFilter{MatchPatterns: []string{"*.mock"}},
@@ -108,20 +108,20 @@ func Check(target string) error {
 		for _, mockFile := range mockFiles {
 			mockPath := path.Join(targetService, strings.TrimRight(mockFile, ".mock"))
 
-			_, targetMock, targetDir := parseTarget(mockPath)
+			_, targetMock, targetDir := rules.ParsePath(mockPath)
 
-			rules = append(rules, &RuleInfo{targetService, targetMock, targetDir})
+			ruleInfoSlice = append(ruleInfoSlice, &RuleInfo{targetService, targetMock, targetDir})
 		}
 	}
 
-	if len(rules) == 0 {
+	if len(ruleInfoSlice) == 0 {
 		fmtc.Println("\n{y}No mock's were found{!}\n")
 		return nil
 	}
 
 	var maxProblemType = PROBLEM_NONE
 
-	for _, rule := range rules {
+	for _, rule := range ruleInfoSlice {
 		maxProblemType = mathutil.MaxU8(checkRule(rule), maxProblemType)
 	}
 
@@ -142,21 +142,6 @@ func Check(target string) error {
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
-
-// parseTarget parse target string and return service name + mock path
-func parseTarget(target string) (string, string, string) {
-	targetSlice := strings.Split(target, "/")
-	targetItems := len(targetSlice)
-
-	switch targetItems {
-	case 1:
-		return target, "", ""
-	case 2:
-		return targetSlice[0], targetSlice[1], ""
-	default:
-		return targetSlice[0], targetSlice[targetItems-1], strings.Join(targetSlice[1:targetItems-1], "/")
-	}
-}
 
 // checkRule parse rule, run validators and print check results
 func checkRule(ruleInfo *RuleInfo) uint8 {

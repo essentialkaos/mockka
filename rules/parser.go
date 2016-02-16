@@ -72,6 +72,22 @@ func Parse(ruleDir, service, dir, mock string) (*Rule, error) {
 	return parseRuleData(data, ruleDir, service, dir, mock)
 }
 
+// ParsePath parse path of rule file and return service name,
+// mock name (without extension) and inner dir
+func ParsePath(path string) (string, string, string) {
+	pathSlice := strings.Split(path, "/")
+	pathItems := len(pathSlice)
+
+	switch pathItems {
+	case 1:
+		return path, "", ""
+	case 2:
+		return pathSlice[0], pathSlice[1], ""
+	default:
+		return pathSlice[0], pathSlice[pathItems-1], strings.Join(pathSlice[1:pathItems-1], "/")
+	}
+}
+
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 func parseRuleData(data []string, ruleDir, service, dir, mock string) (*Rule, error) {
