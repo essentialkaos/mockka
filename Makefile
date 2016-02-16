@@ -24,8 +24,7 @@ mockka-viewer:
 	go build mockka-viewer.go
 
 test:
-	go test ./rules 
-	go test ./urlutil
+	go test ./rules ./urlutil
 
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin

@@ -30,45 +30,45 @@ var _ = Suite(&ParseSuite{})
 func (s *ParseSuite) TestParsingError(c *C) {
 	var err error
 
-	_, err = Parse("../testdata", "", "", "test0")
+	_, err = Parse("../common/testdata", "", "", "test0")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "File ../testdata/test0.mock is not exist")
+	c.Assert(err.Error(), Equals, "File ../common/testdata/test0.mock is not exist")
 
-	_, err = Parse("../testdata", "", "", "error_empty")
-
-	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "File ../testdata/error_empty.mock is empty")
-
-	_, err = Parse("../testdata", "", "", "error_resp1")
+	_, err = Parse("../common/testdata", "", "", "error_empty")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_resp1.mock - section REQUEST is malformed")
+	c.Assert(err.Error(), Equals, "File ../common/testdata/error_empty.mock is empty")
 
-	_, err = Parse("../testdata", "", "", "error_resp2")
-
-	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_resp2.mock - request url must start from /")
-
-	_, err = Parse("../testdata", "", "", "error_code")
+	_, err = Parse("../common/testdata", "", "", "error_resp1")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_code.mock - section CODE is malformed")
+	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_resp1.mock - section REQUEST is malformed")
 
-	_, err = Parse("../testdata", "", "", "error_headers")
-
-	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_headers.mock - section HEADERS is malformed")
-
-	_, err = Parse("../testdata", "", "", "error_delay")
+	_, err = Parse("../common/testdata", "", "", "error_resp2")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_delay.mock - section DELAY is malformed")
+	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_resp2.mock - request url must start from /")
 
-	_, err = Parse("../testdata", "", "", "error_auth")
+	_, err = Parse("../common/testdata", "", "", "error_code")
 
 	c.Assert(err, Not(IsNil))
-	c.Assert(err.Error(), Equals, "Can't parse file ../testdata/error_auth.mock - section AUTH is malformed")
+	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_code.mock - section CODE is malformed")
+
+	_, err = Parse("../common/testdata", "", "", "error_headers")
+
+	c.Assert(err, Not(IsNil))
+	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_headers.mock - section HEADERS is malformed")
+
+	_, err = Parse("../common/testdata", "", "", "error_delay")
+
+	c.Assert(err, Not(IsNil))
+	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_delay.mock - section DELAY is malformed")
+
+	_, err = Parse("../common/testdata", "", "", "error_auth")
+
+	c.Assert(err, Not(IsNil))
+	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_auth.mock - section AUTH is malformed")
 }
 
 func (s *ParseSuite) TestParsing(c *C) {
@@ -77,7 +77,7 @@ func (s *ParseSuite) TestParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "test1", "dir1", "test")
+	rule, err = Parse("../common/testdata", "test1", "dir1", "test")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
@@ -86,7 +86,7 @@ func (s *ParseSuite) TestParsing(c *C) {
 	c.Assert(rule.FullName, Equals, "dir1/test")
 	c.Assert(rule.Dir, Equals, "dir1")
 	c.Assert(rule.Service, Equals, "test1")
-	c.Assert(rule.Path, Equals, "../testdata/test1/dir1/test.mock")
+	c.Assert(rule.Path, Equals, "../common/testdata/test1/dir1/test.mock")
 
 	c.Assert(rule.Desc, Equals, "Test mock file")
 	c.Assert(rule.Request.Host, Equals, "test.domain")
@@ -105,7 +105,7 @@ func (s *ParseSuite) TestParsing(c *C) {
 	c.Assert(rule.Responses["1"].File, Equals, "")
 
 	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":\"ABCD\"}\n")
-	c.Assert(rule.Responses["2"].File, Equals, "../testdata/test1/test.json")
+	c.Assert(rule.Responses["2"].File, Equals, "../common/testdata/test1/test.json")
 }
 
 func (s *ParseSuite) TestMultiresponseParsing(c *C) {
@@ -114,7 +114,7 @@ func (s *ParseSuite) TestMultiresponseParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "multi_resp")
+	rule, err = Parse("../common/testdata", "", "", "multi_resp")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
@@ -136,36 +136,36 @@ func (s *ParseSuite) TestFileResponseParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "file_resp")
+	rule, err = Parse("../common/testdata", "", "", "file_resp")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
 
-	c.Assert(rule.Responses["1"].File, Equals, "../testdata/files/resp1.json")
+	c.Assert(rule.Responses["1"].File, Equals, "../common/testdata/files/resp1.json")
 	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":1}\n")
 	c.Assert(rule.Responses["1"].Headers["Content-Type"], Equals, "text/javascript")
 
-	c.Assert(rule.Responses["2"].File, Equals, "../testdata/files/resp2.txt")
+	c.Assert(rule.Responses["2"].File, Equals, "../common/testdata/files/resp2.txt")
 	c.Assert(rule.Responses["2"].Body(), Equals, "TEST1234ABCD\n")
 	c.Assert(rule.Responses["2"].Headers["Content-Type"], Equals, "text/plain")
 
-	c.Assert(rule.Responses["3"].File, Equals, "../testdata/files/resp3.xml")
+	c.Assert(rule.Responses["3"].File, Equals, "../common/testdata/files/resp3.xml")
 	c.Assert(rule.Responses["3"].Body(), Equals, "<xml>TEST</xml>\n")
 	c.Assert(rule.Responses["3"].Headers["Content-Type"], Equals, "text/xml")
 
-	c.Assert(rule.Responses["4"].File, Equals, "../testdata/files/resp4.csv")
+	c.Assert(rule.Responses["4"].File, Equals, "../common/testdata/files/resp4.csv")
 	c.Assert(rule.Responses["4"].Body(), Equals, "1;TEST;ABCD\n")
 	c.Assert(rule.Responses["4"].Headers["Content-Type"], Equals, "text/csv")
 
-	c.Assert(rule.Responses["5"].File, Equals, "../testdata/files/resp5.html")
+	c.Assert(rule.Responses["5"].File, Equals, "../common/testdata/files/resp5.html")
 	c.Assert(rule.Responses["5"].Body(), Equals, "<html><head><title>TEST</title></head><body>ABCD1234</body></html>\n")
 	c.Assert(rule.Responses["5"].Headers["Content-Type"], Equals, "text/html")
 
-	c.Assert(rule.Responses["6"].File, Equals, "../testdata/files/resp6.unknown")
+	c.Assert(rule.Responses["6"].File, Equals, "../common/testdata/files/resp6.unknown")
 	c.Assert(rule.Responses["6"].Body(), Equals, "TEST1234ABCD\n")
 	c.Assert(rule.Responses["6"].Headers["Content-Type"], Equals, "text/plain")
 
-	c.Assert(rule.Responses["7"].File, Equals, "../testdata/files/resp7")
+	c.Assert(rule.Responses["7"].File, Equals, "../common/testdata/files/resp7")
 	c.Assert(rule.Responses["7"].Body(), Equals, "")
 	c.Assert(rule.Responses["7"].Headers["Content-Type"], Equals, "text/plain")
 }
@@ -176,7 +176,7 @@ func (s *ParseSuite) TestURLResponseParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "url_resp")
+	rule, err = Parse("../common/testdata", "", "", "url_resp")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
@@ -195,7 +195,7 @@ func (s *ParseSuite) TestWildcardRuleParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "wildcard1")
+	rule, err = Parse("../common/testdata", "", "", "wildcard1")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
@@ -207,7 +207,7 @@ func (s *ParseSuite) TestEmptyResponseRuleParsing(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "empty_response")
+	rule, err = Parse("../common/testdata", "", "", "empty_response")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
@@ -221,7 +221,7 @@ func (s *ParseSuite) TestDifferentOrder(c *C) {
 		err  error
 	)
 
-	rule, err = Parse("../testdata", "", "", "dif_order")
+	rule, err = Parse("../common/testdata", "", "", "dif_order")
 
 	c.Assert(rule, Not(IsNil))
 	c.Assert(err, IsNil)
@@ -230,7 +230,7 @@ func (s *ParseSuite) TestDifferentOrder(c *C) {
 	c.Assert(rule.FullName, Equals, "dif_order")
 	c.Assert(rule.Dir, Equals, "")
 	c.Assert(rule.Service, Equals, "")
-	c.Assert(rule.Path, Equals, "../testdata/dif_order.mock")
+	c.Assert(rule.Path, Equals, "../common/testdata/dif_order.mock")
 
 	c.Assert(rule.Desc, Equals, "Test mock file")
 	c.Assert(rule.Request.Host, Equals, "test.domain")

@@ -26,6 +26,7 @@ import (
 	"github.com/essentialkaos/mockka/listing"
 	"github.com/essentialkaos/mockka/rules"
 	"github.com/essentialkaos/mockka/server"
+	"github.com/essentialkaos/mockka/validator"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -88,9 +89,10 @@ const (
 )
 
 const (
-	COMMAND_RUN  = "run"
-	COMMAND_LIST = "list"
-	COMMAND_MAKE = "make"
+	COMMAND_RUN   = "run"
+	COMMAND_LIST  = "list"
+	COMMAND_MAKE  = "make"
+	COMMAND_CHECK = "check"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -269,6 +271,9 @@ func execCommand(args []string) {
 	case COMMAND_LIST:
 		listMocks(args[1:])
 
+	case COMMAND_CHECK:
+		checkMocks(args[1:])
+
 	default:
 		printError(fmt.Sprintf("Unknown command %s", command))
 		os.Exit(1)
@@ -330,8 +335,27 @@ func listMocks(args []string) {
 	}
 }
 
+func checkMocks(args []string) {
+	var mock = ""
+
+	if len(args) != 0 {
+		mock = args[0]
+	}
+
+	err := validator.Check(mock)
+
+	if err != nil {
+		printError(err.Error())
+		os.Exit(1)
+	}
+}
+
 func printError(message string) {
-	fmt.Printf("\n%s\n\n", message)
+	if arg.GetB(ARG_DAEMON) {
+		fmt.Printf("\n%s\n\n", message)
+	} else {
+		fmtc.Printf("\n{r}%s{!}\n\n", message)
+	}
 }
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -357,8 +381,9 @@ func showUsage() {
 	info := usage.NewInfo("")
 
 	info.AddCommand(COMMAND_RUN, "Run mockka server")
-	info.AddCommand(COMMAND_MAKE, "Create mock file from template", "name")
-	info.AddCommand(COMMAND_LIST, "Show list of exist rules")
+	info.AddCommand(COMMAND_CHECK, "Check rule for problems", "mock-file")
+	info.AddCommand(COMMAND_MAKE, "Create mock file from template", "mock-name")
+	info.AddCommand(COMMAND_LIST, "Show list of exist rules", "service-name")
 
 	info.AddOption(ARG_CONFIG, "Path to config file", "file")
 	info.AddOption(ARG_PORT, "Overwrite port", fmt.Sprintf("%d-%d", MIN_PORT, MAX_PORT))
@@ -367,9 +392,28 @@ func showUsage() {
 	info.AddOption(ARG_HELP, "Show this help message")
 	info.AddOption(ARG_VER, "Show version")
 
-	info.AddExample("-c /path/to/mockka.conf run")
-	info.AddExample("-c /path/to/mockka.conf make service1/test1")
-	info.AddExample("-c /path/to/mockka.conf list")
+	info.AddExample(
+		"-c /path/to/mockka.conf run",
+		"Run mockka server and use config /path/to/mockka.conf",
+	)
+
+	info.AddExample(
+		"make service1/test1",
+		"Create file test1.mock for service service1.",
+	)
+
+	info.AddExample(
+		"check service1/test1",
+		"Check rule file test1.mock for service service1",
+	)
+
+	info.AddExample(
+		"check service1/test1",
+		"Check all rules of service service1",
+	)
+
+	info.AddExample("list", "List all rules")
+	info.AddExample("list service1", "List service1 rules")
 
 	info.Render()
 }

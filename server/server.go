@@ -23,6 +23,7 @@ import (
 	"pkg.re/essentialkaos/ek.v1/knf"
 	"pkg.re/essentialkaos/ek.v1/kv"
 	"pkg.re/essentialkaos/ek.v1/log"
+	"pkg.re/essentialkaos/ek.v1/mathutil"
 	"pkg.re/essentialkaos/ek.v1/path"
 	"pkg.re/essentialkaos/ek.v1/rand"
 	"pkg.re/essentialkaos/ek.v1/req"
@@ -52,6 +53,7 @@ const (
 	HTTP_READ_TIMEOUT         = "http:read-timeout"
 	HTTP_WRITE_TIMEOUT        = "http:write-timeout"
 	HTTP_MAX_HEADER_SIZE      = "http:max-header-size"
+	HTTP_MAX_DELAY            = "http:max-delay"
 	PROCESSING_ALLOW_PROXYING = "processing:allow-proxying"
 	ACCESS_USER               = "access:user"
 	ACCESS_GROUP              = "access:group"
@@ -210,7 +212,7 @@ func processRequest(w http.ResponseWriter, r *http.Request, rule *rules.Rule, re
 	}
 
 	if resp.Delay > 0 {
-		delay := resp.Delay * float64(time.Second)
+		delay := mathutil.BetweenF(resp.Delay, 0.0, knf.GetF(HTTP_MAX_DELAY, 60.0)) * float64(time.Second)
 		time.Sleep(time.Duration(delay))
 	}
 
