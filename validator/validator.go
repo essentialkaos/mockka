@@ -106,7 +106,7 @@ func Check(target string) error {
 		)
 
 		for _, mockFile := range mockFiles {
-			mockPath := path.Join(targetService, strings.TrimRight(mockFile, ".mock"))
+			mockPath := path.Join(targetService, strings.Replace(mockFile, ".mock", "", -1))
 
 			_, targetMock, targetDir := rules.ParsePath(mockPath)
 

@@ -202,7 +202,7 @@ RULELOOP:
 
 		service, mockfile, dir := ParsePath(rulePath)
 		fullPath := path.Join(obs.ruleDir, rulePath)
-		mockname := strings.TrimRight(mockfile, ".mock")
+		mockname := strings.Replace(mockfile, ".mock", "", -1)
 
 		if obs.pathMap[fullPath] != nil {
 			continue
