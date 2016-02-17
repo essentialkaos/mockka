@@ -125,14 +125,14 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 	rule = observer.GetRule(r)
 
 	if rule == nil {
-		log.Error("Can't find rule for request %s (%s)", r.URL.String(), r.Method)
+		log.Error("Can't find rule for request %s → %s%s", r.Method, r.Host, r.URL.String())
 		writeError(w, r, X_MOCKKA_NO_RULE)
 		return
 	}
 
 	switch len(rule.Responses) {
 	case 0:
-		log.Error("Can't find response for request %s (%s)", r.URL.String(), r.Method)
+		log.Error("Can't find rule for request %s → %s%s", r.Method, r.Host, r.URL.String())
 		writeError(w, r, X_MOCKKA_NO_RESPONSE)
 		return
 	case 1:
