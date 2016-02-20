@@ -1,0 +1,12 @@
+@DESCRIPTION
+Test mock file
+
+@REQUEST
+GET /test
+
+@RESPONSE:1 < http://www.domain.com/api/users
+@RESPONSE:2 < https://www.domain.com/api/users?limit=20
+@RESPONSE:3 << http://www.domain.com/api/items
+
+@CODE
+200

@@ -1,0 +1,27 @@
+# Comment
+
+@DESCRIPTION
+Test mock file
+
+@HOST
+test.domain
+
+@AUTH
+user1:password1
+
+@REQUEST
+GET /test?user=bob&id=123&action=delete
+
+@RESPONSE:1
+{"test":123}
+
+@RESPONSE:2 < test.json
+
+@CODE
+200
+
+@HEADERS
+Content-Type:application/json
+
+@DELAY
+12.3

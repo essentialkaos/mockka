@@ -1,0 +1,12 @@
+/var/log/mockka/*.log {
+    weekly
+    missingok
+    rotate 52
+    compress
+    delaycompress
+    notifempty
+    sharedscripts
+    postrotate
+        [ -f /var/run/mockka/mockka.pid ] && kill -HUP `cat /var/run/mockka/mockka.pid`
+    endscript
+}
