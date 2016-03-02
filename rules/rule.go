@@ -8,8 +8,11 @@ package rules
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 import (
+	"fmt"
 	"io/ioutil"
 	"time"
+
+	"pkg.re/essentialkaos/ek.v1/timeutil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
@@ -69,8 +72,77 @@ func NewRule() *Rule {
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
+// String return string with request info
+func (r *Request) String() string {
+	if r == nil {
+		return "Nil"
+	}
+
+	host := "-"
+
+	if r.Host != "" {
+		host = r.Host
+	}
+
+	return fmt.Sprintf(
+		"Host: %s | Method: %s | URL: %s | NURL: %s | URI: %s",
+		host, r.Method, r.URL, r.NURL, r.URI,
+	)
+}
+
+// String return string with rule info
+func (r *Rule) String() string {
+	if r == nil {
+		return "Nil"
+	}
+
+	auth := "-"
+	dir := "-"
+
+	if r.Auth != nil {
+		auth = r.Auth.User + "/" + r.Auth.Password
+	}
+
+	if r.Dir != "" {
+		dir = r.Dir
+	}
+
+	return fmt.Sprintf(
+		"FullName: %s | Service: %s | Dir: %s | Path: %s | Desc: %t | Auth: %s | ResponsesN: %d | ModTime: %s | IsWildcard: %t",
+		r.FullName, r.Service, dir, r.Path, r.Desc != "", auth, len(r.Responses),
+		timeutil.Format(r.ModTime, "%Y/%m/%d %H:%M:%S"), r.IsWildcard,
+	)
+}
+
+// String return string with response info
+func (r *Response) String() string {
+	if r == nil {
+		return "Nil"
+	}
+
+	file := "-"
+	url := "-"
+
+	if r.File != "" {
+		file = r.File
+	}
+
+	if r.URL != "" {
+		url = r.URL
+	}
+
+	return fmt.Sprintf(
+		"ContentSyms: %d | File: %s | URL: %s | Code: %d | HeadersNum: %d | Delay: %g | OverwriteFlag: %t",
+		len(r.Content), file, url, r.Code, len(r.Headers), r.Delay, r.Overwrite,
+	)
+}
+
 // Body return reponse body
 func (r *Response) Body() string {
+	if r == nil {
+		return ""
+	}
+
 	if r.File != "" {
 		body, err := ioutil.ReadFile(r.File)
 
