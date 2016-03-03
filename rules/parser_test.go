@@ -69,6 +69,17 @@ func (s *ParseSuite) TestParsingError(c *C) {
 
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "Can't parse file ../common/testdata/error_auth.mock - section AUTH is malformed")
+
+	var (
+		nilRule *Rule
+		nilResp *Response
+		nilReq  *Request
+	)
+
+	c.Assert(nilRule.String(), Equals, "Nil")
+	c.Assert(nilResp.String(), Equals, "Nil")
+	c.Assert(nilReq.String(), Equals, "Nil")
+	c.Assert(nilResp.Body(), Equals, "")
 }
 
 func (s *ParseSuite) TestParsing(c *C) {
@@ -102,10 +113,17 @@ func (s *ParseSuite) TestParsing(c *C) {
 	c.Assert(rule.Responses[DEFAULT].Headers["Content-Type"], Equals, "application/json")
 
 	c.Assert(rule.Responses["1"].Body(), Equals, "{\"test\":123}\n")
-	c.Assert(rule.Responses["1"].File, Equals, "")
 
 	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":\"ABCD\"}\n")
 	c.Assert(rule.Responses["2"].File, Equals, "../common/testdata/test1/test.json")
+
+	c.Assert(rule.Responses["3"].URL, Equals, "http://www.domain.com")
+
+	c.Assert(rule.String(), Not(Equals), "")
+	c.Assert(rule.Request.String(), Not(Equals), "")
+	c.Assert(rule.Responses["1"].String(), Not(Equals), "")
+	c.Assert(rule.Responses["2"].String(), Not(Equals), "")
+	c.Assert(rule.Responses["3"].String(), Not(Equals), "")
 }
 
 func (s *ParseSuite) TestMultiresponseParsing(c *C) {
@@ -250,4 +268,26 @@ func (s *ParseSuite) TestDifferentOrder(c *C) {
 
 	c.Assert(rule.Responses["2"].Body(), Equals, "{\"test\":456}\n")
 	c.Assert(rule.Responses["2"].File, Equals, "")
+}
+
+func (s *ParseSuite) TestPathParsing(c *C) {
+	var service, mock, dir string
+
+	service, mock, dir = ParsePath("service1")
+
+	c.Assert(service, Equals, "service1")
+	c.Assert(mock, Equals, "")
+	c.Assert(dir, Equals, "")
+
+	service, mock, dir = ParsePath("service1/mock1")
+
+	c.Assert(service, Equals, "service1")
+	c.Assert(mock, Equals, "mock1")
+	c.Assert(dir, Equals, "")
+
+	service, mock, dir = ParsePath("service1/some/dir/mock1")
+
+	c.Assert(service, Equals, "service1")
+	c.Assert(mock, Equals, "mock1")
+	c.Assert(dir, Equals, "some/dir")
 }
