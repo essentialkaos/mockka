@@ -1,5 +1,11 @@
 ### Changelog
 
+#### 1.7.2
+
+* Improved debug output
+* Increased coverage
+* Improved compatibility with latest version of ek package
+
 #### 1.7.0
 
 * Mock files validation feature (`mockka check ...`)
