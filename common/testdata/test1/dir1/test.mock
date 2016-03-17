@@ -17,6 +17,8 @@ GET /test?user=bob&id=123&action=delete
 
 @RESPONSE:2 < test.json
 
+@RESPONSE:3 < http://www.domain.com
+
 @CODE
 200
 

@@ -96,7 +96,7 @@ func (obs *Observer) Load() bool {
 			rule, err := Parse(obs.ruleDir, r.Service, r.Dir, r.Name)
 
 			if err != nil {
-				log.Error("Can't parse rule file: %v", err)
+				log.Error(err.Error())
 				ok = false
 				continue
 			}
@@ -278,7 +278,7 @@ func findRule(uriMap, wcMap RuleMap, r *http.Request, autoHead bool) *Rule {
 	host := httputil.GetRequestHost(r)
 	uri := urlutil.SortURLParams(r.URL)
 
-	log.Debug("Request: %s%s", host, uri)
+	log.Debug("Searching rule for %s → %s%s (autohead=%t)", r.Method, host, uri, autoHead)
 
 	result = getRule(uriMap, host, r.Method, uri)
 

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strings"
 
 	"pkg.re/essentialkaos/ek.v1/arg"
 	"pkg.re/essentialkaos/ek.v1/fmtc"
@@ -33,7 +32,7 @@ import (
 
 const (
 	APP  = "Mockka"
-	VER  = "1.7.0"
+	VER  = "1.7.2"
 	DESC = "Utility for mockking HTTP API's"
 )
 
@@ -247,23 +246,21 @@ func validateConfig() []error {
 }
 
 func setupLog() {
-	levels := map[string]int{
-		"debug": log.DEBUG,
-		"info":  log.INFO,
-		"warn":  log.WARN,
-		"error": log.ERROR,
-		"crit":  log.CRIT,
-	}
-
-	log.MinLevel(levels[strings.ToLower(knf.GetS(LOG_LEVEL, "debug"))])
+	var err error
 
 	if arg.GetB(ARG_DAEMON) {
-		err := log.Set(knf.GetS(LOG_FILE), knf.GetM(LOG_PERMS, 0644))
+		err = log.Set(knf.GetS(LOG_FILE), knf.GetM(LOG_PERMS, 0644))
 
 		if err != nil {
-			fmt.Printf("Can't setup logger: %s\n", err.Error())
+			fmt.Printf("Can't setup logger: %v\n", err)
 			os.Exit(1)
 		}
+	}
+
+	err = log.MinLevel(knf.GetS(LOG_LEVEL, "info"))
+
+	if err != nil {
+		fmt.Printf("Can't set log level: %v\n", err)
 	}
 }
 

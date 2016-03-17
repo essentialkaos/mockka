@@ -18,6 +18,7 @@ import (
 	"text/template"
 	"time"
 
+	"pkg.re/essentialkaos/ek.v1/crypto"
 	"pkg.re/essentialkaos/ek.v1/fsutil"
 	"pkg.re/essentialkaos/ek.v1/httputil"
 	"pkg.re/essentialkaos/ek.v1/knf"
@@ -120,6 +121,10 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 		resp *rules.Response
 	)
 
+	uuid := crypto.GenUUID()
+
+	log.Debug("Request: %s → %s%v (%s)", r.Method, r.Host, r.URL, uuid)
+
 	w.Header().Set("Server", serverToken)
 
 	rule = observer.GetRule(r)
@@ -169,6 +174,10 @@ func basicHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	log.Debug("<%s:RULE> → %v", uuid, rule)
+	log.Debug("<%s:REQ>  → %v", uuid, rule.Request)
+	log.Debug("<%s:RESP> → %v", uuid, resp)
 
 	logRequestInfo(r, rule, resp, responseContent, bodyData)
 	processRequest(w, r, rule, resp, responseContent)
