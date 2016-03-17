@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strings"
 
 	"pkg.re/essentialkaos/ek.v1/arg"
 	"pkg.re/essentialkaos/ek.v1/fmtc"
