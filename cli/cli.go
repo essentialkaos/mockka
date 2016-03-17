@@ -260,7 +260,7 @@ func setupLog() {
 	err = log.MinLevel(knf.GetS(LOG_LEVEL, "info"))
 
 	if err != nil {
-		fmt.Printf("Can't set log level: %v\n")
+		fmt.Printf("Can't set log level: %v\n", err)
 	}
 }
 
