@@ -84,7 +84,7 @@ func Make(name string) error {
 	templData, err := ioutil.ReadFile(template)
 
 	if err != nil {
-		return fmt.Errorf("Can't read template content from %s - %s", template, err.Error())
+		return fmt.Errorf("Can't read template content from %s: %v", template, err)
 	}
 
 	return createMock(string(templData), dirName, fullPath)
