@@ -32,7 +32,7 @@ import (
 
 const (
 	APP  = "Mockka"
-	VER  = "1.7.2"
+	VER  = "1.7.3"
 	DESC = "Utility for mockking HTTP API's"
 )
 

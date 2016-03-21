@@ -278,6 +278,11 @@ func findRule(uriMap, wcMap RuleMap, r *http.Request, autoHead bool) *Rule {
 	host := httputil.GetRequestHost(r)
 	uri := urlutil.SortURLParams(r.URL)
 
+	log.Debug(
+		"Rules statistics: URI: %d | WC: %d | Paths: %d",
+		len(obs.uriMap), len(obs.wcMap), len(obs.pathMap),
+	)
+
 	log.Debug("Searching rule for %s → %s%s (autohead=%t)", r.Method, host, uri, autoHead)
 
 	result = getRule(uriMap, host, r.Method, uri)

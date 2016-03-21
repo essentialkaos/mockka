@@ -1,5 +1,9 @@
 ### Changelog
 
+#### 1.7.3
+
+* Improved debug output
+
 #### 1.7.2
 
 * Improved debug output
