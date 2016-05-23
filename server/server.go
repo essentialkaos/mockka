@@ -269,10 +269,14 @@ func renderTemplate(req *http.Request, responseContent string) (string, error) {
 
 	stabber.request = req
 	ct := template.Must(templ, nil)
-	ct.Execute(&bf, stabber)
+	err = ct.Execute(&bf, stabber)
 	stabber.request = nil
 
-	return string(bf.Bytes()), nil
+	if err != nil {
+		return "", err
+	}
+
+	return bf.String(), nil
 }
 
 // getRandomResponse return random response from list of possible response bodies or default
