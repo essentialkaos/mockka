@@ -200,20 +200,26 @@ func (obs *Observer) checkRules(rules []string) bool {
 RULELOOP:
 	for _, rulePath := range rules {
 
-		service, mockfile, dir := ParsePath(rulePath)
+		service, mockFile, dir := ParsePath(rulePath)
+
+		if mockFile == "" {
+			log.Error("Can't use rule %s: rule file must be placed inside service directory (e.g. rules/my-service/rule.mock)", rulePath)
+			continue
+		}
+
 		fullPath := path.Join(obs.ruleDir, rulePath)
-		mockname := strings.Replace(mockfile, ".mock", "", -1)
+		mockName := strings.Replace(mockFile, ".mock", "", -1)
 
 		if obs.pathMap[fullPath] != nil {
 			continue
 		}
 
-		rule, err := Parse(obs.ruleDir, service, dir, mockname)
+		rule, err := Parse(obs.ruleDir, service, dir, mockName)
 
 		if err != nil {
 
 			if obs.errMap[fullPath] != true {
-				log.Error("Can't parse rule %s: %v", path.Join(service, dir, mockname), err)
+				log.Error("Can't parse rule %s: %v", path.Join(service, dir, mockName), err)
 				obs.errMap[fullPath] = true
 				ok = false
 			}
