@@ -1,11 +1,19 @@
-![Mockka Logo](https://essentialkaos.com/github/mockka-v5.png)
+![Mockka Logo](https://essentialkaos.com/github/mockka-v7.png)
 
 `Mockka` is a utility for mocking and testing HTTP API's.
 
 #### Installation
-````
+To build the Mockka from scratch, make sure you have a working Go 1.5+ workspace ([instructions](https://golang.org/doc/install)), then:
+
+```
 go get github.com/essentialkaos/mockka
-````
+```
+
+If you want update Mockka to latest stable release, do:
+
+```
+go get -u github.com/essentialkaos/mockka
+```
 
 #### Usage
 
@@ -19,7 +27,15 @@ Run Mockka server:
 mockka -c /path/to/mockka.conf run
 ````
 
+By default Mockka try to find configuration file in next locations:
+
+* `/etc/mockka.conf`
+* `~/.mockka.conf` (`$HOME` directory)
+* `./mockka.conf` (current directory)
+
 #### Rule examples
+
+Latest version of Mockka have full [Fake](https://github.com/icrowley/fake) package support. List of all supported functions can be found [here](https://github.com/essentialkaos/mockka/wiki/Supported-Stubber-Methods).
 
 ##### Example 1
 ````bash
@@ -218,6 +234,49 @@ Examples:
   Read file and show only records between 2016/01/02 12:00 and current moment
 
 ````
+
+#### Usage
+
+```
+Usage: mockka <command> <options>
+
+Commands:
+
+  run                  Run mockka server
+  check mock-file      Check rule for problems
+  make mock-name       Create mock file from template
+  list service-name    Show list of exist rules
+
+Options:
+
+  --config, -c file        Path to config file
+  --port, -p 1024-65535    Overwrite port
+  --daemon, -d             Run server in daemon mode
+  --no-color, -nc          Disable colors in output
+  --help, -h               Show this help message
+  --version, -v            Show version
+
+Examples:
+
+  mockka -c /path/to/mockka.conf run
+  Run mockka server and use config /path/to/mockka.conf
+
+  mockka make service1/test1
+  Create file test1.mock for service service1.
+
+  mockka check service1/test1
+  Check rule file test1.mock for service service1
+
+  mockka check service1/test1
+  Check all rules of service service1
+
+  mockka list
+  List all rules
+
+  mockka list service1
+  List service1 rules
+
+```
 
 #### Build Status
 
