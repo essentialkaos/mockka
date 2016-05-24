@@ -23,7 +23,7 @@ If you want update Mockka to latest stable release, do:
 go get -u github.com/essentialkaos/mockka
 ```
 
-#### Usage
+#### First steps
 
 Show basic info about all mock files:
 ````
