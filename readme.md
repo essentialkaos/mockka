@@ -3,7 +3,7 @@
 `Mockka` is a utility for mocking and testing HTTP API's.
 
 * [Installation](#installation)
-* [Usage](#usage)
+* [First steps](#first-steps)
 * [Rule examples](#rule-examples)
 * [Viewer](#viewer)
 * [Usage](#usage)
