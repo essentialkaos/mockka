@@ -2,6 +2,14 @@
 
 `Mockka` is a utility for mocking and testing HTTP API's.
 
+* [Installation](#installation)
+* [Usage](#usage)
+* [Rule examples](#rule-examples)
+* [Viewer](#viewer)
+* [Usage](#usage)
+* [Build Status](#build-status)
+* [License](#license)
+
 #### Installation
 To build the Mockka from scratch, make sure you have a working Go 1.5+ workspace ([instructions](https://golang.org/doc/install)), then:
 
