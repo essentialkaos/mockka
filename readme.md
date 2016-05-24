@@ -1,4 +1,4 @@
-![Mockka Logo](https://essentialkaos.com/github/mockka-v7.png)
+![Mockka Logo](https://essentialkaos.com/github/mockka-v8.png)
 
 `Mockka` is a utility for mocking and testing HTTP API's.
 
