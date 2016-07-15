@@ -1,16 +1,12 @@
-![Mockka Logo](https://essentialkaos.com/github/mockka-v8.png)
+<p align="center"><a href="#installation">Installation</a> • <a href="#first-steps">First steps</a> • <a href="#rule-examples">Rule examples</a> • <a href="#viewer">Viewer</a> • <a href="#usage">Usage</a> • <a href="#build-status">Build Status</a> • <a href="#license">License</a></p>
+
+<p align="center">
+<img width="300" height="150" src="https://essentialkaos.com/github/mockka.png"/>
+</p>
 
 `Mockka` is a utility for mocking and testing HTTP API's.
 
-* [Installation](#installation)
-* [First steps](#first-steps)
-* [Rule examples](#rule-examples)
-* [Viewer](#viewer)
-* [Usage](#usage)
-* [Build Status](#build-status)
-* [License](#license)
-
-#### Installation
+## Installation
 To build the Mockka from scratch, make sure you have a working Go 1.5+ workspace ([instructions](https://golang.org/doc/install)), then:
 
 ```
@@ -23,7 +19,7 @@ If you want update Mockka to latest stable release, do:
 go get -u github.com/essentialkaos/mockka
 ```
 
-#### First steps
+## First steps
 
 Show basic info about all mock files:
 ````
@@ -41,11 +37,11 @@ By default Mockka try to find configuration file in next locations:
 * `~/.mockka.conf` (`$HOME` directory)
 * `./mockka.conf` (current directory)
 
-#### Rule examples
+## Rule examples
 
 Latest version of Mockka have full [Fake](https://github.com/icrowley/fake) package support. List of all supported functions can be found [here](https://github.com/essentialkaos/mockka/wiki/Supported-Stubber-Methods).
 
-##### Example 1
+#### Example 1
 ````bash
 # This is comment
 
@@ -100,7 +96,7 @@ X-Seraph-LoginReason:OK
 
 ````
 
-##### Example 2
+#### Example 2
 
 ````bash
 @DESCRIPTION
@@ -145,7 +141,7 @@ X-Seraph-LoginReason:OK
 
 ````
 
-##### Example 3
+#### Example 3
 
 ````bash
 @DESCRIPTION
@@ -178,7 +174,7 @@ Content-Type:application/json
 
 ````
 
-##### Example 4 (wildcard query)
+#### Example 4 (wildcard query)
 
 ````bash
 @DESCRIPTION
@@ -201,7 +197,7 @@ Content-Type:application/json
 
 ````
 
-#### Viewer
+## Viewer
 
 For viewing mockka logs we provide simple tool named `mockka-viewer`.
 
@@ -243,7 +239,7 @@ Examples:
 
 ````
 
-#### Usage
+## Usage
 
 ```
 Usage: mockka <command> <options>
@@ -286,13 +282,13 @@ Examples:
 
 ```
 
-#### Build Status
+## Build Status
 
-| Repository | Status |
+| Branch | Status |
 |------------|--------|
-| Stable | [![Build Status](https://travis-ci.org/essentialkaos/mockka.svg?branch=master)](https://travis-ci.org/essentialkaos/mockka) |
-| Unstable | [![Build Status](https://travis-ci.org/essentialkaos/mockka.svg?branch=develop)](https://travis-ci.org/essentialkaos/mockka) |
+| `master` | [![Build Status](https://travis-ci.org/essentialkaos/mockka.svg?branch=master)](https://travis-ci.org/essentialkaos/mockka) |
+| `develop` | [![Build Status](https://travis-ci.org/essentialkaos/mockka.svg?branch=develop)](https://travis-ci.org/essentialkaos/mockka) |
 
-#### License
+## License
 
 [EKOL](https://essentialkaos.com/ekol)
