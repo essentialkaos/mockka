@@ -14,10 +14,10 @@ import (
 	"os"
 	"strings"
 
-	"pkg.re/essentialkaos/ek.v1/fsutil"
-	"pkg.re/essentialkaos/ek.v1/knf"
-	"pkg.re/essentialkaos/ek.v1/path"
-	"pkg.re/essentialkaos/ek.v1/system"
+	"pkg.re/essentialkaos/ek.v3/fsutil"
+	"pkg.re/essentialkaos/ek.v3/knf"
+	"pkg.re/essentialkaos/ek.v3/path"
+	"pkg.re/essentialkaos/ek.v3/system"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //

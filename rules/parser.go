@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"pkg.re/essentialkaos/ek.v1/fsutil"
-	"pkg.re/essentialkaos/ek.v1/httputil"
+	"pkg.re/essentialkaos/ek.v3/fsutil"
+	"pkg.re/essentialkaos/ek.v3/httputil"
 
 	"github.com/essentialkaos/mockka/urlutil"
 )

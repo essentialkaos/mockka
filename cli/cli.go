@@ -12,14 +12,14 @@ import (
 	"os"
 	"runtime"
 
-	"pkg.re/essentialkaos/ek.v1/arg"
-	"pkg.re/essentialkaos/ek.v1/fmtc"
-	"pkg.re/essentialkaos/ek.v1/fsutil"
-	"pkg.re/essentialkaos/ek.v1/knf"
-	"pkg.re/essentialkaos/ek.v1/log"
-	"pkg.re/essentialkaos/ek.v1/signal"
-	"pkg.re/essentialkaos/ek.v1/system"
-	"pkg.re/essentialkaos/ek.v1/usage"
+	"pkg.re/essentialkaos/ek.v3/arg"
+	"pkg.re/essentialkaos/ek.v3/fmtc"
+	"pkg.re/essentialkaos/ek.v3/fsutil"
+	"pkg.re/essentialkaos/ek.v3/knf"
+	"pkg.re/essentialkaos/ek.v3/log"
+	"pkg.re/essentialkaos/ek.v3/signal"
+	"pkg.re/essentialkaos/ek.v3/system"
+	"pkg.re/essentialkaos/ek.v3/usage"
 
 	"github.com/essentialkaos/mockka/generator"
 	"github.com/essentialkaos/mockka/listing"
@@ -32,7 +32,7 @@ import (
 
 const (
 	APP  = "Mockka"
-	VER  = "1.7.3"
+	VER  = "1.7.4"
 	DESC = "Utility for mockking HTTP API's"
 )
 

@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"pkg.re/essentialkaos/ek.v1/timeutil"
+	"pkg.re/essentialkaos/ek.v3/timeutil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
