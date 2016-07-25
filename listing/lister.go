@@ -11,10 +11,10 @@ import (
 	"errors"
 	"fmt"
 
-	"pkg.re/essentialkaos/ek.v1/fmtc"
-	"pkg.re/essentialkaos/ek.v1/fmtutil"
-	"pkg.re/essentialkaos/ek.v1/knf"
-	"pkg.re/essentialkaos/ek.v1/netutil"
+	"pkg.re/essentialkaos/ek.v3/fmtc"
+	"pkg.re/essentialkaos/ek.v3/knf"
+	"pkg.re/essentialkaos/ek.v3/netutil"
+	"pkg.re/essentialkaos/ek.v3/pluralize"
 
 	"github.com/essentialkaos/mockka/rules"
 )
@@ -77,7 +77,10 @@ func listService(observer *rules.Observer, service string) error {
 		return fmt.Errorf("Service %s is not found", service)
 	}
 
-	fmtc.Printf("\n{*r}%s{!} {s}(%s){!}\n", service, fmtutil.Pluralize(len(rulesNames), "mock", "mocks"))
+	fmtc.Printf(
+		"\n{*r}%s{!} {s}(%s){!}\n", service,
+		pluralize.Pluralize(len(rulesNames), "mock", "mocks"),
+	)
 
 	for _, ruleName := range rulesNames {
 		rule := observer.GetRuleByName(service, ruleName)

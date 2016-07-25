@@ -14,21 +14,21 @@ import (
 	"strings"
 	"time"
 
-	"pkg.re/essentialkaos/ek.v1/arg"
-	"pkg.re/essentialkaos/ek.v1/fmtc"
-	"pkg.re/essentialkaos/ek.v1/fsutil"
-	"pkg.re/essentialkaos/ek.v1/knf"
-	"pkg.re/essentialkaos/ek.v1/path"
-	"pkg.re/essentialkaos/ek.v1/sliceutil"
-	"pkg.re/essentialkaos/ek.v1/strutil"
-	"pkg.re/essentialkaos/ek.v1/usage"
+	"pkg.re/essentialkaos/ek.v3/arg"
+	"pkg.re/essentialkaos/ek.v3/fmtc"
+	"pkg.re/essentialkaos/ek.v3/fsutil"
+	"pkg.re/essentialkaos/ek.v3/knf"
+	"pkg.re/essentialkaos/ek.v3/path"
+	"pkg.re/essentialkaos/ek.v3/sliceutil"
+	"pkg.re/essentialkaos/ek.v3/strutil"
+	"pkg.re/essentialkaos/ek.v3/usage"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
 
 const (
 	APP  = "Mockka Log Viewer"
-	VER  = "1.0.0"
+	VER  = "1.0.1"
 	DESC = "Utility for reading and highlighting Mockka logs"
 )
 

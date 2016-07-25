@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"pkg.re/essentialkaos/ek.v1/fsutil"
-	"pkg.re/essentialkaos/ek.v1/httputil"
-	"pkg.re/essentialkaos/ek.v1/log"
-	"pkg.re/essentialkaos/ek.v1/path"
+	"pkg.re/essentialkaos/ek.v3/fsutil"
+	"pkg.re/essentialkaos/ek.v3/httputil"
+	"pkg.re/essentialkaos/ek.v3/log"
+	"pkg.re/essentialkaos/ek.v3/path"
 
 	"github.com/essentialkaos/mockka/urlutil"
 )

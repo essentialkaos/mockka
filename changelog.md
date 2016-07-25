@@ -1,8 +1,14 @@
 ### Changelog
 
+#### 1.7.4
+
+* [EK](https://github.com/essentialkaos/ek) package updated to v3
+
 #### 1.7.3
 
 * Improved debug output
+* Fixed bug with global mock files placed in rules directory
+* Fixed bug with rendering templates
 
 #### 1.7.2
 

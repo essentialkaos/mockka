@@ -9,17 +9,17 @@ package validator
 
 import (
 	"errors"
-	"pkg.re/essentialkaos/ek.v1/sliceutil"
 	"strings"
 
-	"pkg.re/essentialkaos/ek.v1/fmtc"
-	"pkg.re/essentialkaos/ek.v1/fmtutil"
-	"pkg.re/essentialkaos/ek.v1/fsutil"
-	"pkg.re/essentialkaos/ek.v1/httputil"
-	"pkg.re/essentialkaos/ek.v1/knf"
-	"pkg.re/essentialkaos/ek.v1/mathutil"
-	"pkg.re/essentialkaos/ek.v1/path"
-	"pkg.re/essentialkaos/ek.v1/rand"
+	"pkg.re/essentialkaos/ek.v3/fmtc"
+	"pkg.re/essentialkaos/ek.v3/fmtutil"
+	"pkg.re/essentialkaos/ek.v3/fsutil"
+	"pkg.re/essentialkaos/ek.v3/httputil"
+	"pkg.re/essentialkaos/ek.v3/knf"
+	"pkg.re/essentialkaos/ek.v3/mathutil"
+	"pkg.re/essentialkaos/ek.v3/path"
+	"pkg.re/essentialkaos/ek.v3/rand"
+	"pkg.re/essentialkaos/ek.v3/sliceutil"
 
 	"github.com/essentialkaos/mockka/rules"
 )

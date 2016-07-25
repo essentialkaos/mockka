@@ -13,7 +13,7 @@ all: mockka mockka-viewer
 
 deps:
 	go get -v pkg.re/check.v1
-	go get -v pkg.re/essentialkaos/ek.v1
+	go get -v pkg.re/essentialkaos/ek.v3
 	go get -v github.com/icrowley/fake
 	go get -v golang.org/x/tools/cmd/cover
 

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"pkg.re/essentialkaos/ek.v1/kv"
-	"pkg.re/essentialkaos/ek.v1/timeutil"
+	"pkg.re/essentialkaos/ek.v3/kv"
+	"pkg.re/essentialkaos/ek.v3/timeutil"
 )
 
 // ////////////////////////////////////////////////////////////////////////////////// //
