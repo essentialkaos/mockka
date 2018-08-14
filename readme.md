@@ -1,7 +1,7 @@
 <p align="center"><a href="#installation">Installation</a> • <a href="#first-steps">First steps</a> • <a href="#rule-examples">Rule examples</a> • <a href="#viewer">Viewer</a> • <a href="#usage">Usage</a> • <a href="#build-status">Build Status</a> • <a href="#license">License</a></p>
 
 <p align="center">
-<img width="300" height="150" src="https://essentialkaos.com/github/mockka.png"/>
+<img width="300" height="150" src="https://gh.kaos.st/mockka.png"/>
 </p>
 
 `Mockka` is a utility for mocking and testing HTTP API's.
